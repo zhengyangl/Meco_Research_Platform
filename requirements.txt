@@ -1,5 +1,4 @@
-numpy==1.24.4
-numpydoc @ file:///tmp/build/80754af9/numpydoc_1605117425582/work
-pandas==2.0.3
-plotly==6.5.0
-streamlit==1.40.1
+numpy
+pandas
+plotly
+streamlit
