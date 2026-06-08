@@ -290,7 +290,7 @@ div[data-testid="stButton"] button:active {
 .final-you     { font: 300 1.1rem/1 'Inter', sans-serif; letter-spacing: .28em; text-transform: uppercase; color: #8A847B; margin-bottom: .6rem; display: block; }
 .final-belong  { font: 700 4.2rem/1.1 'Playfair Display', serif; color: #3D7A52; display: block; margin-bottom: 1.6rem; }
 .final-link    { font: 400 .72rem/1 'Inter', sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #356B49; text-decoration: none; border-bottom: 1px solid rgba(61,122,82,0.35); padding-bottom: 2px; display: inline-block; }
-.land-ack      { font: 300 italic .75rem/1.8 'Inter', sans-serif; color: #B8B0A4; max-width: 560px; margin: 3rem auto 0; text-align: center; line-height: 1.85; }
+.land-ack      { font: 300 italic .75rem/1.8 'Inter', sans-serif; color: #B8B0A4; max-width: 560px; display: block; margin: 3rem auto 0; margin-left: auto; margin-right: auto; text-align: center; line-height: 1.85; }
 
 /* ── Credibility badges ───────────────────────────────────── */
 .badge-row {
@@ -1959,13 +1959,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<p class="land-ack">
-    The Dish with One Spoon Covenant speaks to our collective responsibility
-    to steward and sustain the land and environment in which we live and work,
-    so that all peoples, present and future, may benefit from the sustenance it provides.
-    We recognise the partnerships and knowledge that have guided the learning
-    and research conducted as part of this work.
-</p>
+<div style="text-align:center;">
+    <p class="land-ack">
+        The Dish with One Spoon Covenant speaks to our collective responsibility
+        to steward and sustain the land and environment in which we live and work,
+        so that all peoples, present and future, may benefit from the sustenance it provides.
+        We recognise the partnerships and knowledge that have guided the learning
+        and research conducted as part of this work.
+    </p>
+</div>
 """, unsafe_allow_html=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True)
