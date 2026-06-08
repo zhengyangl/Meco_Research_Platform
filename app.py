@@ -1958,16 +1958,5 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div style="text-align:center;">
-    <p class="land-ack">
-        The Dish with One Spoon Covenant speaks to our collective responsibility
-        to steward and sustain the land and environment in which we live and work,
-        so that all peoples, present and future, may benefit from the sustenance it provides.
-        We recognise the partnerships and knowledge that have guided the learning
-        and research conducted as part of this work.
-    </p>
-</div>
-""", unsafe_allow_html=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True)
