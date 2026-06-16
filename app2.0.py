@@ -250,22 +250,22 @@ div[data-testid="stRadio"] > div { gap: 1rem; }
 .gap-ratio b { color: #B05A2E; }
 
 /* ── Section 5: Quote ────────────────────────────────────── */
-.quote-wrap { text-align: center; padding: 3.5rem 2rem 2rem; max-width: 720px; margin: 0 auto; }
-.quote-mark { font: 400 4rem/1 'Playfair Display', serif; color: rgba(61,122,82,0.30); display: block; margin-bottom: -.5rem; }
-.quote-text { font: 400 italic 1.8rem/1.55 'Playfair Display', serif; color: #2A2722; margin-bottom: 1.2rem; }
-.quote-source { font: 300 .75rem/1 'Inter', sans-serif; color: #8A847B; letter-spacing: .10em; text-transform: uppercase; }
-.turn-text { font: 300 1.05rem/1.85 'Inter', sans-serif; color: #4A453E; text-align: center; max-width: 520px; margin: 2rem auto 0; }
-.turn-text em { color: #3D7A52; font-style: normal; }
+.quote-wrap { text-align: center !important; padding: 3.5rem 2rem 2rem !important; max-width: 720px !important; margin: 0 auto !important; }
+.quote-mark { font: 400 4rem/1 'Playfair Display', serif !important; color: rgba(61,122,82,0.30) !important; display: block !important; margin-bottom: -.5rem !important; }
+.quote-text { font: 400 italic 1.8rem/1.55 'Playfair Display', serif !important; color: #2A2722 !important; margin-bottom: 1.2rem !important; }
+.quote-source { font: 300 .75rem/1 'Inter', sans-serif !important; color: #8A847B !important; letter-spacing: .10em !important; text-transform: uppercase !important; }
+.turn-text { font: 300 1.05rem/1.85 'Inter', sans-serif !important; color: #4A453E !important; text-align: center !important; max-width: 520px !important; margin: 2rem auto 0 !important; }
+.turn-text em { color: #3D7A52 !important; font-style: normal !important; }
 
 /* ── Section 5: Echo ─────────────────────────────────────── */
 .echo-wrap {
-    background: rgba(61,122,82,0.05); border: 1px solid rgba(61,122,82,0.20);
-    border-radius: 14px; padding: 2.2rem 2.8rem;
-    text-align: center; margin: 0 auto; max-width: 680px;
+    background: rgba(61,122,82,0.05) !important; border: 1px solid rgba(61,122,82,0.20) !important;
+    border-radius: 14px !important; padding: 2.2rem 2.8rem !important;
+    text-align: center !important; margin: 0 auto !important; max-width: 680px !important;
 }
-.echo-n     { font: 700 5rem/1 'Playfair Display', serif; color: #3D7A52; display: block; margin-bottom: .6rem; }
-.echo-label { font: 300 1.0rem/1.7 'Inter', sans-serif; color: #4A453E; max-width: 440px; margin: 0 auto .8rem; }
-.echo-sub   { font: 300 .75rem/1.6 'Inter', sans-serif; color: #8A847B; max-width: 400px; margin: 0 auto; }
+.echo-n     { font: 700 5rem/1 'Playfair Display', serif !important; color: #3D7A52 !important; display: block !important; margin-bottom: .6rem !important; }
+.echo-label { font: 300 1.0rem/1.7 'Inter', sans-serif !important; color: #4A453E !important; max-width: 440px !important; margin: 0 auto .8rem !important; }
+.echo-sub   { font: 300 .75rem/1.6 'Inter', sans-serif !important; color: #8A847B !important; max-width: 400px !important; margin: 0 auto !important; }
 
 /* ── Section 5: Identity buttons ─────────────────────────── */
 div[data-testid="stButton"] button {
@@ -288,29 +288,29 @@ div[data-testid="stButton"] button:active {
 
 /* ── Section 5: Response card ────────────────────────────── */
 .response-card {
-    background: #FFFFFF; border: 1px solid #E5E1DA;
-    border-left: 3px solid #3D7A52; border-radius: 0 12px 12px 0;
-    padding: 2rem 2.4rem; margin-top: 1.4rem; max-width: 780px;
-    box-shadow: 0 2px 6px rgba(42,39,34,.05);
+    background: #FFFFFF !important; border: 1px solid #E5E1DA !important;
+    border-left: 3px solid #3D7A52 !important; border-radius: 0 12px 12px 0 !important;
+    padding: 2rem 2.4rem !important; margin-top: 1.4rem !important; max-width: 780px !important;
+    box-shadow: 0 2px 6px rgba(42,39,34,.05) !important;
 }
-.response-title { font: 700 1.55rem/1.2 'Playfair Display', serif; color: #2A2722; margin-bottom: .7rem; }
-.response-body  { font: 300 .92rem/1.85 'Inter', sans-serif; color: #4A453E; margin-bottom: 1.2rem; }
-.response-body em { color: #2E7CB8; font-style: italic; }
-.response-body b  { color: #2A2722; font-weight: 500; }
-.response-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.response-title { font: 700 1.55rem/1.2 'Playfair Display', serif !important; color: #2A2722 !important; margin-bottom: .7rem !important; }
+.response-body  { font: 300 .92rem/1.85 'Inter', sans-serif !important; color: #4A453E !important; margin-bottom: 1.2rem !important; }
+.response-body em { color: #2E7CB8 !important; font-style: italic !important; }
+.response-body b  { color: #2A2722 !important; font-weight: 500 !important; }
+.response-actions { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
 .r-btn {
-    font: 400 .72rem/1 'Inter', sans-serif; letter-spacing: .10em; text-transform: uppercase;
-    padding: 7px 16px; border-radius: 20px;
-    border: 1px solid rgba(61,122,82,0.40); color: #356B49;
-    background: rgba(61,122,82,0.07); text-decoration: none; display: inline-block;
+    font: 400 .72rem/1 'Inter', sans-serif !important; letter-spacing: .10em !important; text-transform: uppercase !important;
+    padding: 7px 16px !important; border-radius: 20px !important;
+    border: 1px solid rgba(61,122,82,0.40) !important; color: #356B49 !important;
+    background: rgba(61,122,82,0.07) !important; text-decoration: none !important; display: inline-block !important;
 }
 
 /* ── Section 5: Final statement ──────────────────────────── */
-.final-wrap { text-align: center; padding: 4rem 2rem 2rem; }
-.final-you     { font: 300 1.1rem/1 'Inter', sans-serif; letter-spacing: .28em; text-transform: uppercase; color: #8A847B; margin-bottom: .6rem; display: block; }
-.final-belong  { font: 700 4.2rem/1.1 'Playfair Display', serif; color: #3D7A52; display: block; margin-bottom: 1.6rem; }
-.final-link    { font: 400 .72rem/1 'Inter', sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #356B49; text-decoration: none; border-bottom: 1px solid rgba(61,122,82,0.35); padding-bottom: 2px; display: inline-block; }
-.land-ack      { font: 300 italic .75rem/1.8 'Inter', sans-serif; color: #B8B0A4; max-width: 560px; display: block; margin: 3rem auto 0; margin-left: auto; margin-right: auto; text-align: center; line-height: 1.85; }
+.final-wrap { text-align: center !important; padding: 4rem 2rem 2rem !important; }
+.final-you     { font: 300 1.1rem/1 'Inter', sans-serif !important; letter-spacing: .28em !important; text-transform: uppercase !important; color: #8A847B !important; margin-bottom: .6rem !important; display: block !important; }
+.final-belong  { font: 700 4.2rem/1.1 'Playfair Display', serif !important; color: #3D7A52 !important; display: block !important; margin-bottom: 1.6rem !important; }
+.final-link    { font: 400 .72rem/1 'Inter', sans-serif !important; letter-spacing: .18em !important; text-transform: uppercase !important; color: #356B49 !important; text-decoration: none !important; border-bottom: 1px solid rgba(61,122,82,0.35) !important; padding-bottom: 2px !important; display: inline-block !important; }
+.land-ack      { font: 300 italic .75rem/1.8 'Inter', sans-serif !important; color: #B8B0A4 !important; max-width: 560px !important; display: block !important; margin: 3rem auto 0 !important; text-align: center !important; line-height: 1.85 !important; }
 
 /* ── Credibility badges ───────────────────────────────────── */
 .badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: .65rem; align-items: center; }
