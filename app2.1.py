@@ -366,18 +366,18 @@ SERVICES = {
         "css": "provisioning",
         "items": [
             {"name": "Biochemicals",        "icon": "🧬", "desc": "Molecules used in medicine",                                   "papers": 11097},
-            {"name": "Fibre · Hide · Wood", "icon": "🌲", "desc": "Materials used for clothing or construction",                   "papers": 3538},
+            {"name": "Fibre · Hide · Wood", "icon": "🌲", "desc": "Materials used for clothing or construction",                   "papers": 3508},
             {"name": "Fuel",                "icon": "⚡", "desc": "Materials used to generate energy",                             "papers": 1676},
             {"name": "Potable Water",       "icon": "💧", "desc": "Fresh water that is safe to consume",                           "papers": 784},
-            {"name": "Food",                "icon": "🌾", "desc": "Nutritious ingredients from wild & domesticated habitats",      "papers": 439},
-            {"name": "Biodiversity",        "icon": "🦋", "desc": "The variety of living species on Earth",                        "papers": 65},
+            {"name": "Food",                "icon": "🌾", "desc": "Nutritious ingredients from wild & domesticated habitats",      "papers": 436},
+            {"name": "Biodiversity",        "icon": "🦋", "desc": "The variety of living species on Earth",                        "papers": 121},
         ]
     },
     "Cultural": {
         "css": "cultural",
         "items": [
             {"name": "Inspiration · Education", "icon": "🎨", "desc": "Art, science, music, literature, and design",                "papers": 679},
-            {"name": "Aesthetic",               "icon": "🌸", "desc": "Mental and physical benefits of natural beauty",             "papers": 621},
+            {"name": "Aesthetic",               "icon": "🌸", "desc": "Mental and physical benefits of natural beauty",             "papers": 521},
             {"name": "Recreation",              "icon": "🏕️", "desc": "Physical and mental health from nature experiences",         "papers": 260},
             {"name": "Cultural Heritage",       "icon": "🏛️", "desc": "Societal value placed upon landscapes",                      "papers": 34},
             {"name": "Spiritual",               "icon": "🕊️", "desc": "Support for the spiritual lives of people",                  "papers": 0},
@@ -388,57 +388,55 @@ SERVICES = {
         "css": "regulating",
         "items": [
             {"name": "Disease Regulation",   "icon": "🦠", "desc": "Natural systems reducing disease and disease vectors",        "papers": 4418},
-            {"name": "Waste Treatment",      "icon": "♻️", "desc": "Filtering and treating organic and chemical waste",            "papers": 2913},
-            {"name": "Climate Regulation",   "icon": "🌡️", "desc": "Stabilization of climatic conditions",                        "papers": 854},
+            {"name": "Waste Treatment",      "icon": "♻️", "desc": "Filtering and treating organic and chemical waste",            "papers": 3973},
+            {"name": "Climate Regulation",   "icon": "🌡️", "desc": "Stabilization of climatic conditions",                        "papers": 864},
             {"name": "Atmospheric Reg.",     "icon": "💨", "desc": "Production and consumption of essential molecules (O₂)",      "papers": 847},
             {"name": "Water Regulation",     "icon": "🌊", "desc": "Timing and volume of water distribution across land",         "papers": 716},
             {"name": "Pollination",          "icon": "🐝", "desc": "Distribution of pollen seeds for plant reproduction",         "papers": 355},
-            {"name": "Coastline Regulation", "icon": "🏖️", "desc": "Stabilization of coastal lands via mangroves and reefs",     "papers": 146},
+            {"name": "Coastline Regulation", "icon": "🏖️", "desc": "Stabilization of coastal lands via mangroves and reefs",     "papers": 145},
         ]
     },
     "Supporting": {
         "css": "supporting",
         "items": [
             {"name": "Primary Production", "icon": "☀️", "desc": "Creation of sugars from sunlight — base of all food chains",  "papers": 718},
-            {"name": "Soil Formation",     "icon": "🌱", "desc": "The ongoing creation of new fertile soil",                     "papers": 343},
+            {"name": "Soil Formation",     "icon": "🌱", "desc": "The ongoing creation of new fertile soil",                     "papers": 383},
             {"name": "Nutrient Cycling",   "icon": "🔄", "desc": "The movement of nutrients through ecosystems",                 "papers": 58},
         ]
     }
 }
 
-# Per-service Replace/Enhance/Support proportions (shared by Section 2 + Sandbox)
+# Per-service Replace/Enhance/Support absolute counts from Jacobs et al. (2025).
+# Source: GPT-4.1 classification of 68,972 WoS records, filtered to 59,651
+# non-review papers, of which 31,593 have Decision='Y' (linked to an ES).
 # fmt: off
 _RAW2 = [
-    ("Biochemicals",          "Provisioning", 11097, 0.48, 0.49, 0.03),
-    ("Fibre / Hide / Wood",   "Provisioning",  3538, 0.55, 0.42, 0.03),
-    ("Fuel",                  "Provisioning",  1676, 0.62, 0.35, 0.03),
-    ("Potable Water",         "Provisioning",   784, 0.55, 0.40, 0.05),
-    ("Food",                  "Provisioning",   439, 0.62, 0.33, 0.05),
-    ("Biodiversity",          "Provisioning",    65, 0.25, 0.45, 0.30),
-    ("Disease Regulation",    "Regulating",    4418, 0.72, 0.25, 0.03),
-    ("Waste Treatment",       "Regulating",    2913, 0.65, 0.32, 0.03),
-    ("Climate Regulation",    "Regulating",     854, 0.48, 0.48, 0.04),
-    ("Atmospheric Reg.",      "Regulating",     847, 0.50, 0.45, 0.05),
-    ("Water Regulation",      "Regulating",     716, 0.45, 0.48, 0.07),
-    ("Pollination",           "Regulating",     355, 0.35, 0.45, 0.20),
-    ("Coastline Regulation",  "Regulating",     146, 0.40, 0.50, 0.10),
-    ("Primary Production",    "Supporting",     718, 0.35, 0.52, 0.13),
-    ("Soil Formation",        "Supporting",     343, 0.30, 0.50, 0.20),
-    ("Nutrient Cycling",      "Supporting",      58, 0.20, 0.55, 0.25),
-    ("Inspiration/Education", "Cultural",        679, 0.15, 0.45, 0.40),
-    ("Aesthetic",             "Cultural",        621, 0.20, 0.50, 0.30),
-    ("Recreation",            "Cultural",        260, 0.15, 0.55, 0.30),
-    ("Cultural Heritage",     "Cultural",         34, 0.10, 0.50, 0.40),
-    ("Spiritual",             "Cultural",          0, 0.00, 0.00, 0.00),
-    ("Cultural Identity",     "Cultural",          0, 0.00, 0.00, 0.00),
+    ("Biochemicals",          "Provisioning", 11097, 5327, 5452, 318),
+    ("Fibre / Hide / Wood",   "Provisioning",  3508, 1925, 1497,  86),
+    ("Fuel",                  "Provisioning",  1676,  960,  683,  33),
+    ("Potable Water",         "Provisioning",   784,  306,  466,  12),
+    ("Food",                  "Provisioning",   436,  261,  149,  26),
+    ("Biodiversity",          "Provisioning",   121,   65,   28,  28),
+    ("Disease Regulation",    "Regulating",    4418, 3162, 1120, 136),
+    ("Waste Treatment",       "Regulating",    3973, 2737, 1146,  90),
+    ("Climate Regulation",    "Regulating",     864,  413,  410,  41),
+    ("Atmospheric Reg.",      "Regulating",     847,  655,  177,  15),
+    ("Water Regulation",      "Regulating",     716,  462,  215,  39),
+    ("Pollination",           "Regulating",     355,  296,   45,  14),
+    ("Coastline Regulation",  "Regulating",     145,   90,   45,  10),
+    ("Primary Production",    "Supporting",     718,  486,  221,  11),
+    ("Soil Formation",        "Supporting",     383,  106,  263,  14),
+    ("Nutrient Cycling",      "Supporting",      58,   34,   17,   7),
+    ("Inspiration/Education", "Cultural",       679,  417,  172,  90),
+    ("Aesthetic",             "Cultural",       521,  370,  120,  31),
+    ("Recreation",            "Cultural",       260,  171,   71,  18),
+    ("Cultural Heritage",     "Cultural",        34,   23,    8,   3),
+    ("Spiritual",             "Cultural",         0,    0,    0,   0),
+    ("Cultural Identity",     "Cultural",         0,    0,    0,   0),
 ]
 # fmt: on
-_df2 = pd.DataFrame(_RAW2, columns=["service","category","total","repl_pct","enha_pct","supp_pct"])
-_df2["replace"] = (_df2["total"] * _df2["repl_pct"]).round().astype(int)
-_df2["enhance"] = (_df2["total"] * _df2["enha_pct"]).round().astype(int)
-_df2["support"] = (_df2["total"] - _df2["replace"] - _df2["enhance"]).clip(lower=0)
-_df2["adj"]     = _df2["total"].clip(lower=1)
-
+_df2 = pd.DataFrame(_RAW2, columns=["service", "category", "total", "replace", "enhance", "support"])
+_df2["adj"] = _df2["total"].clip(lower=1)
 
 # ════════════════════════════════════════════════════════════════
 # SESSION STATE
@@ -742,7 +740,7 @@ st.markdown("""
 st.markdown("""
 <div class="hero-nav">
   <a class="hn-primary" href="#sec-feel">Take me through the story</a>
-  <a class="hn-secondary" href="#sec-sandbox">Data Sandbox</a>
+  <a class="hn-secondary" href="/explorer" target="_blank">Data Explorer ↗</a>
 </div>
 """, unsafe_allow_html=True)
 
@@ -893,8 +891,8 @@ st.markdown("""
 <div class="kpi-grid">
   <div class="kpi-card">
     <span class="kpi-val">59,651</span>
-    <span class="kpi-label">Papers analyzed</span>
-    <span class="kpi-note">Bio-inspired research corpus<br>Web of Science, 2004–2025</span>
+    <span class="kpi-label">Non-review papers</span>
+    <span class="kpi-note">Of which 31,593 describe<br>a technology linked to an ES</span>
   </div>
   <div class="kpi-card">
     <span class="kpi-val">20 / 22</span>
@@ -996,17 +994,18 @@ st.markdown('<div class="s2-eyebrow">Section 02 · The Gap Map</div>', unsafe_al
 st.markdown('<h2 class="s2-title">The Services Nobody Is Building.</h2>', unsafe_allow_html=True)
 st.markdown("""
 <p class="s2-sub">
-    Of the 22 ecosystem services that sustain life on Earth,
-    bio-inspired research has touched 20. But engagement is not the same as
-    investment. The ring below shows where science concentrates its effort —
-    and where the foundations of our food system, our water cycle, and our
-    cultural identity are left almost entirely unaddressed.
+    Of the 68,972 publications, 59,651 are original research — not reviews.
+    A panel of cross-disciplinary experts defined 22 ecosystem services that
+    nature provides, then asked: <em>does this paper describe a technology
+    that contributes to any of them?</em>
 </p>
 <p class="s2-sub">
-    Each service is a spoke, grouped into its four ecosystem-service families.
-    A longer spoke means more research; the three bands show each service's
-    Replace / Enhance / Support split. Two spokes are missing entirely —
-    services with zero bio-inspired research. Hover any spoke for exact counts.
+    The answer was yes for <b>31,593 papers</b> — just over half.
+    The rest pursue bio-inspiration without connecting to a specific
+    ecosystem function. The ring below maps how those 31,593 papers
+    distribute across the 22 services — and where the foundations of our
+    food system, our water cycle, and our cultural identity are left
+    almost entirely unaddressed.
 </p>
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
@@ -1180,7 +1179,7 @@ with _info_col2:
         <div class="radial-info-body">
             Pollination, soil formation, and nutrient cycling collectively
             underpin global food security. Together they account for just
-            <b>756 papers</b> — fewer than <b>7%</b> of what a single service
+            <b>796 papers</b> — about <b>7%</b> of what a single service
             (Biochemicals) has attracted.
         </div>
     </div>
@@ -1192,9 +1191,10 @@ st.markdown('<div class="chart-label">The critical gap — food system services<
 credibility_badge(has_real=True, has_sim=True)
 st.markdown("""
 <p class="chart-sub-label">
-    Pollination, soil formation, and nutrient cycling collectively underpin
-    global food security. Together they account for just 756 papers —
-    fewer than 7% of what a single service (Biochemicals) has attracted.
+    Pollination, soil formation, and nutrient cycling collectively
+    underpin global food security. Together they account for just
+    <b>796 papers</b> — about <b>7%</b> of what a single service
+    (Biochemicals) has attracted.
 </p>
 """, unsafe_allow_html=True)
 st.markdown("""
@@ -1220,7 +1220,7 @@ st.markdown("""
     <div class="gap-svc">Nutrient Cycling</div>
     <span class="gap-n">58</span>
     <div class="gap-sub">The movement of nitrogen, phosphorus, and carbon through living systems.
-        The rarest research topic in the entire 59,651-paper corpus.</div>
+        The rarest research topic in the entire 31,593-paper corpus.</div>
     <div class="gap-ratio"><b>1 paper</b> for every 191 in Biochemicals</div>
   </div>
 </div>
@@ -1230,7 +1230,8 @@ st.markdown("""
 st.markdown("""
 <p style="font:300 .74rem/1.7 'Inter',sans-serif;color:#9A938A;margin-top:.4rem;padding-left:2px;">
     Want the exact numbers for all 22 services, sorted and filterable?
-    They live in the <b style="color:#356B49;font-weight:500;">Data Sandbox</b> at the end of this page.
+    <a href="/explorer" target="_blank" style="color:#356B49;font-weight:500;">Open the Data Explorer ↗</a>
+    &nbsp;·&nbsp;
     <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#9A938A;">
         Read the full paper →</a>
 </p>
@@ -1356,12 +1357,6 @@ _voice_cutscene_html = """
 
       var bee = ov.querySelector('#nv-bee');
 
-      // ── Dismiss machinery, wired FIRST ───────────────────────────────
-      // Attached before any of the cinematic scheduling below, so a click
-      // can always close this full-screen, scroll-locking overlay even if
-      // something in the timeline setup were to fail. No auto-exit: the
-      // scene holds at the end until the user clicks — "Click anywhere to
-      // continue" (pulsing, bottom of screen) is the only way forward.
       var FADE_OUT_MS = 1800;
       var timers = [];
       var schedule = function(fn, time) {
@@ -1391,7 +1386,7 @@ _voice_cutscene_html = """
       ov.addEventListener('click', endCutscene);
 
       // ==========================================
-      // Director's Script Control Center (Timeline Engine)
+      // Director's Script Control Center 
       // ==========================================
       var T = {
         introIn: 200,        // Stage 1: Fade to black
@@ -1434,9 +1429,9 @@ _voice_cutscene_html = """
 """
 components.html(_voice_cutscene_html, height=0)
 
-# ════════════════════════════════════════════════════════════════
-# SECTION 3 · Islands of Expertise  (network graph REBUILT)
-# ════════════════════════════════════════════════════════════════
+# ═════════════════════════════════
+# SECTION 3 · Islands of Expertise 
+# ════════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-islands" class="sec-anchor"></div>', unsafe_allow_html=True)
 st.markdown('<div class="s3-eyebrow">Section 03 · Islands of Expertise</div>', unsafe_allow_html=True)
@@ -1456,8 +1451,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-# Rebuilt: 9 representative nodes, wider cluster separation, dashed cross edges.
-# (x, y, size, paradigm, cluster, papers_label)
 _NODES3 = {
     "Materials Science":  (-1.05,  0.30, 92, "Replace", "Engineering", "~8,200 papers"),
     "Mech. Engineering":  (-0.80, -0.28, 78, "Replace", "Engineering", "~6,800 papers"),
@@ -1711,9 +1704,9 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-# ════════════════════════════════════════════════════════════════
-# SECTION 4 · What 3% Teaches Us  (spotlight → carousel)
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════════════════
+# SECTION 4 · What 3% Teaches Us  
+# ═══════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-3pct" class="sec-anchor"></div>', unsafe_allow_html=True)
 st.markdown('<div class="s4-eyebrow">Section 04 · What 3% Teaches Us</div>', unsafe_allow_html=True)
@@ -1779,7 +1772,7 @@ _sankey4.update_layout(
 # ═════════════════════════════════════════════════
 st.plotly_chart(_sankey4, use_container_width=True, config={"displayModeBar": False})
 
-# Global accessibility map (unchanged — flat map; 3D earth is batch 2)
+# Global accessibility map 
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Global reach — who can access replacement technologies?</div>',
             unsafe_allow_html=True)
@@ -1989,7 +1982,7 @@ _selected5 = [s for s in _all_svc_flat5 if st.session_state.get(s["name"], False
 _gap5 = [s for s in _selected5 if s["papers"] < RESEARCH_GAP_THRESHOLD]
 _n_sel5 = len(_selected5); _n_gap5 = len(_gap5)
 if _n_sel5 == 0:
-    _echo_n = "15"
+    _echo_n = "10"
     _echo_body = "of the 22 services nature provides have fewer than 500 bio-inspired research papers."
     _echo_sub = ("That is not a research gap. That is an open invitation — "
                  "to every scientist, designer, policymaker, artist, and curious human reading this.")
@@ -1997,7 +1990,7 @@ elif _n_gap5 == 0:
     _echo_n = str(_n_sel5)
     _echo_body = ("services you said you depend on today — and all are relatively well-studied. "
                   "But most people's selections aren't.")
-    _echo_sub = "15 of the 22 services have fewer than 500 papers. The gap belongs to all of us."
+    _echo_sub = "10 of the 22 services have fewer than 500 papers. The gap belongs to all of us."
 else:
     _gap_names5 = ", ".join(f"<em>{s['name']}</em>" for s in _gap5[:3])
     _more5 = f" and {_n_gap5 - 3} more" if _n_gap5 > 3 else ""
@@ -2208,151 +2201,13 @@ st.markdown("""
     <a class="final-link" href="https://www.manufacturedecosystems.com" target="_blank">
         manufacturedecosystems.com
     </a>
+    <div style="margin-top:2.5rem;">
+        <a class="hn-secondary" href="/explorer" target="_blank"
+           style="font-size:.78rem; padding:11px 22px;">
+            Explore the data yourself →
+        </a>
+    </div>
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown("<br><br>", unsafe_allow_html=True)
-# ════════════════════════════════════════════════════════════════
-# SECTION 6 · Data Sandbox (UPDATED: Workbench UI)
-# ════════════════════════════════════════════════════════════════
-section_sep()
-st.markdown('<div id="sec-sandbox" class="sec-anchor"></div>', unsafe_allow_html=True)
-st.markdown('<div class="s6-eyebrow">Section 06 · Data Sandbox</div>', unsafe_allow_html=True)
-st.markdown('<h2 class="s6-title">Explore the Data Yourself.</h2>', unsafe_allow_html=True)
-st.markdown("""
-<p class="s6-sub" style="max-width: 800px; margin-bottom: 2.5rem;">
-    The narrative above is one reading of the data. Here, the workbench is yours. 
-    Filter by ecosystem service, category, and design paradigm to build custom views, 
-    or export the aggregated summaries for your own statistical analysis.
-</p>
-""", unsafe_allow_html=True)
-
-# ── 1. Create Workbench Layout (1/4 Controls : 3/4 Workspace) ──
-_ctrl_col, _work_col = st.columns([1, 2.8], gap="large")
-
-with _ctrl_col:
-    # ── Tool Panel: Filter Controls ──
-    st.markdown('<div style="font:600 .75rem/1 \'Inter\',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8A847B;margin-bottom:1.2rem;border-bottom:1px solid #E5E1DA;padding-bottom:.6rem;">⚙️ Filter Controls</div>', unsafe_allow_html=True)
-
-    _all_services6 = sorted(_df2["service"].tolist())
-    _all_cats6     = ["Provisioning", "Regulating", "Supporting", "Cultural"]
-
-    _sel_cats6 = st.multiselect(
-        "Macro-category", options=_all_cats6, default=_all_cats6,
-        help="Filter services by their ecosystem-service macro-category."
-    )
-
-    _sel_paradigms6 = st.multiselect(
-        "Design paradigm", options=["Replace", "Enhance", "Support"],
-        default=["Replace", "Enhance", "Support"],
-        help="Which design paradigms to include in the counts."
-    )
-
-    _min_papers6 = st.slider(
-        "Min. total papers", min_value=0, max_value=11097,
-        value=0, step=50,
-        help="Hide services below this publication count."
-    )
-
-    # ── Apply Filters ──
-    _view6 = _df2[_df2["category"].isin(_sel_cats6)].copy()
-    _view6 = _view6[_view6["total"] >= _min_papers6]
-
-    _paradigm_cols = {"Replace": "replace", "Enhance": "enhance", "Support": "support"}
-    _active_cols6  = [_paradigm_cols[p] for p in _sel_paradigms6] or list(_paradigm_cols.values())
-    _view6["filtered_total"] = _view6[_active_cols6].sum(axis=1)
-    _view6 = _view6.sort_values("filtered_total", ascending=True).reset_index(drop=True)
-
-    # ── Data Export Prep ──
-    _export6 = _view6[["service", "category", "replace", "enhance", "support", "total"]].copy()
-    _export6 = _export6.rename(columns={
-        "service": "Ecosystem Service", "category": "Macro Category",
-        "replace": "Replace (papers)", "enhance": "Enhance (papers)",
-        "support": "Support (papers)", "total": "Total (papers)"
-    })
-    _export6 = _export6.sort_values("Total (papers)", ascending=False).reset_index(drop=True)
-    _csv6 = _export6.to_csv(index=False).encode("utf-8")
-
-    st.markdown('<div style="height:2rem;"></div>', unsafe_allow_html=True)
-    st.download_button(
-        label="⬇ Download CSV",
-        data=_csv6,
-        file_name="meco_ecosystem_service_counts.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
-    st.markdown("""
-    <div style="font:300 .62rem/1.4 'Inter',sans-serif;color:#9A938A;margin-top:.5rem;text-align:center;">
-        Aggregated from Jacobs et al. (2025).<br>Safe for external statistical use.
-    </div>
-    """, unsafe_allow_html=True)
-
-
-with _work_col:
-    # ── Workspace Panel ──
-    if _view6.empty:
-        st.markdown("""
-        <div style="text-align:center; padding: 4rem 2rem; background: #FBF9F5; border: 1px dashed #DAD5CC; border-radius: 8px; color: #8A847B; font: 300 .9rem/1.6 'Inter', sans-serif;">
-            No services match the current filters.<br>Adjust the controls on the left to rebuild the view.
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        # 1. Compact Status Ribbon (KPIs)
-        _m1, _m2, _m3 = st.columns(3)
-        _rarest6 = _view6.iloc[0]["service"] if len(_view6) else "—"
-        
-        # Ribbons CSS inline
-        _ribbon_style = "background:#FBF9F5; border:1px solid #E5E1DA; border-radius:6px; padding:.75rem 1rem; text-align:center;"
-        _val_style = "font:700 1.4rem/1 'Playfair Display',serif; color:#3D7A52; display:block; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
-        _lbl_style = "font:500 .6rem/1 'Inter',sans-serif; color:#6B665E; letter-spacing:.08em; text-transform:uppercase;"
-
-        _m1.markdown(f'<div style="{_ribbon_style}"><span style="{_val_style}">{len(_view6)}</span><span style="{_lbl_style}">Services Listed</span></div>', unsafe_allow_html=True)
-        _m2.markdown(f'<div style="{_ribbon_style}"><span style="{_val_style}">{int(_view6["filtered_total"].sum()):,}</span><span style="{_lbl_style}">Papers in Selection</span></div>', unsafe_allow_html=True)
-        _m3.markdown(f'<div style="{_ribbon_style}"><span style="{_val_style.replace("#3D7A52", "#B05A2E")}">{_rarest6}</span><span style="{_lbl_style}">Least-Researched</span></div>', unsafe_allow_html=True)
-
-        st.markdown('<div style="height:1.2rem;"></div>', unsafe_allow_html=True)
-
-        # 2. Tabbed Views: Chart vs Data Grid
-        tab_viz, tab_data = st.tabs(["📊 Visual Analysis", "🗄️ Data Grid"])
-
-        with tab_viz:
-            _sand_fig = go.Figure()
-            if "Replace" in _sel_paradigms6:
-                _sand_fig.add_trace(go.Bar(name="Replace", y=_view6["service"], x=_view6["replace"],
-                    orientation="h", marker=dict(color="#D68A18", line=dict(width=0)),
-                    hovertemplate="<b>%{y}</b><br>Replace: %{x:,} papers<extra></extra>"))
-            if "Enhance" in _sel_paradigms6:
-                _sand_fig.add_trace(go.Bar(name="Enhance", y=_view6["service"], x=_view6["enhance"],
-                    orientation="h", marker=dict(color="#20AB7D", line=dict(width=0)),
-                    hovertemplate="<b>%{y}</b><br>Enhance: %{x:,} papers<extra></extra>"))
-            if "Support" in _sel_paradigms6:
-                _sand_fig.add_trace(go.Bar(name="Support", y=_view6["service"], x=_view6["support"],
-                    orientation="h", marker=dict(color="#3696E3", line=dict(width=0)),
-                    hovertemplate="<b>%{y}</b><br>Support: %{x:,} papers<extra></extra>"))
-            
-            _sand_fig.update_layout(
-                barmode="stack", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
-                height=max(360, 24 * len(_view6) + 120), margin=dict(l=10, r=20, t=40, b=40),
-                hovermode="y unified",
-                hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#E5E1DA", font=dict(size=11, color="#2A2722", family="Inter, sans-serif")),
-                legend=dict(orientation="h", y=1.05, x=1, xanchor="right", yanchor="bottom", font=dict(size=11, color="#6B665E", family="Inter, sans-serif")),
-                xaxis=dict(title=dict(text="Bio-inspired publications", font=dict(size=11, color="#8A847B")), tickfont=dict(size=11, color="#8A847B"), gridcolor="#F7F5F1", linecolor="#E5E1DA"),
-                yaxis=dict(tickfont=dict(size=10, color="#6B665E", family="Inter, sans-serif"), linecolor="#E5E1DA", gridcolor="rgba(0,0,0,0)")
-            )
-            st.plotly_chart(_sand_fig, use_container_width=True, config={"displayModeBar": False})
-
-        with tab_data:
-            st.markdown("""
-            <div style="font:400 .75rem/1.6 'Inter',sans-serif;color:#6B665E;margin: 1rem 0 .5rem;">
-                Click any column header to <b>sort</b> the data. Hover over the table to reveal download and search tools.
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.dataframe(
-                _export6,
-                use_container_width=True,
-                hide_index=True,
-                height=max(360, 36 * len(_export6) + 40)
-            )
 
 st.markdown("<br><br>", unsafe_allow_html=True)
