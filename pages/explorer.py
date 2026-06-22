@@ -1,16 +1,5 @@
 """
 Data Explorer · Manufactured Ecosystems Research Database
-==========================================================
-Companion page to the narrative dashboard. Where the narrative curates a
-story from the data, this page lets researchers slice the corpus themselves:
-filter by year / category / open access / journal, see the distribution
-shift live, and export the matching rows.
-
-Data source: dashboard_data/papers_classified.parquet (produced by
-pipeline/aggregate.py — 31,559 Decision='Y' non-review papers, 17 columns).
-
-Dependencies (additions to requirements.txt):
-    streamlit-aggrid>=1.0.5
 """
 
 import json
@@ -39,99 +28,83 @@ st.set_page_config(
 # ════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-/* ── Base — match the narrative page so users feel they're in the same product ── */
-.stApp { background: #F7F5F1; color: #2A2722; }
+.stApp { background: #F8FAFC; color: #0F172A; }
 #MainMenu, footer, header { visibility: hidden; }
 section[data-testid="stSidebar"] { display: none !important; }
-section.main > div { padding-top: 1.2rem; padding-bottom: 4rem; }
-div.block-container { max-width: 1280px; padding-left: 2rem; padding-right: 2rem; }
+section.main > div { padding-top: 1rem; padding-bottom: 2rem; }
+div.block-container { max-width: 1400px; padding-left: 2rem; padding-right: 2rem; }
 
-/* ── Header ─────────────────────────────────────────────────── */
 .exp-eyebrow {
-    font: 500 0.68rem/1 'Inter', sans-serif !important;
-    letter-spacing: .22em !important; text-transform: uppercase !important;
-    color: #3D7A52 !important; margin-bottom: .85rem !important;
+    font: 600 0.7rem/1 'JetBrains Mono', monospace !important;
+    letter-spacing: .05em !important; text-transform: uppercase !important;
+    color: #2563EB !important; margin-bottom: .4rem !important;
 }
 .exp-title {
-    font: 700 2.6rem/1.08 'Playfair Display', serif !important;
-    color: #2A2722 !important; margin-bottom: .5rem !important;
+    font: 600 1.8rem/1.2 'Inter', sans-serif !important;
+    letter-spacing: -0.02em !important;
+    color: #0F172A !important; margin-bottom: .4rem !important;
 }
 .exp-sub {
-    font: 300 1.0rem/1.7 'Inter', sans-serif !important;
-    color: #6B665E !important; max-width: 720px !important; margin-bottom: 1.4rem !important;
+    font: 400 0.9rem/1.5 'Inter', sans-serif !important;
+    color: #64748B !important; max-width: 800px !important; margin-bottom: 1rem !important;
 }
 
-/* ── Hero nav (mirrors the narrative page's pills) ── */
-.hero-nav { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;
-            margin-bottom: 1.4rem; }
+.hero-nav { margin-bottom: 1rem; }
 .hn-secondary {
-    font: 500 .74rem/1 'Inter', sans-serif !important; letter-spacing: .02em !important;
-    padding: 9px 16px !important; border-radius: 20px !important; text-decoration: none !important;
-    background: #FFFFFF !important; color: #4A453E !important;
-    border: 1px solid #E5E1DA !important;
-    transition: background .18s, border-color .18s, color .18s;
+    font: 500 .75rem/1 'Inter', sans-serif !important; 
+    padding: 6px 12px !important; border-radius: 4px !important; 
+    text-decoration: none !important; background: #FFFFFF !important; 
+    color: #334155 !important; border: 1px solid #CBD5E1 !important;
+    transition: all .15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .hn-secondary:hover {
-    border-color: rgba(61,122,82,0.45) !important;
-    background: rgba(61,122,82,0.05) !important; color: #2A2722 !important;
+    border-color: #94A3B8 !important; color: #0F172A !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* ── Sticky filter bar ── */
 .filter-bar-wrap {
     position: sticky; top: 0; z-index: 50;
-    background: rgba(247, 245, 241, 0.96);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid #E5E1DA;
-    padding: 1rem 0 .8rem;
-    margin: 0 -2rem 1.4rem;
+    background: rgba(248, 250, 252, 0.98);
+    border-bottom: 1px solid #E2E8F0;
+    padding: 0.8rem 0; margin: 0 -2rem 1rem;
     padding-left: 2rem; padding-right: 2rem;
-}
-.filter-label {
-    font: 500 .66rem/1 'Inter', sans-serif !important;
-    letter-spacing: .14em !important; text-transform: uppercase !important;
-    color: #8A847B !important; margin-bottom: .35rem !important;
-}
-.match-count {
-    font: 400 .88rem/1 'Inter', sans-serif; color: #4A453E;
-    padding: .55rem 1rem; background: rgba(61,122,82,0.07);
-    border: 1px solid rgba(61,122,82,0.20); border-radius: 20px;
-    display: inline-block;
-}
-.match-count b { color: #356B49; font-weight: 600; }
-
-/* ── Chart caption ── */
-.chart-label {
-    font: 500 0.68rem/1 'Inter', sans-serif !important;
-    letter-spacing: .18em !important; text-transform: uppercase !important;
-    color: #8A847B !important; margin-bottom: .6rem !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
 }
 
-/* ── Streamlit widget polish ── */
 div[data-testid="stMultiSelect"] label,
 div[data-testid="stSlider"] label,
 div[data-testid="stSelectbox"] label,
 div[data-testid="stTextInput"] label {
-    font: 500 .66rem/1.3 'Inter', sans-serif !important;
-    letter-spacing: .14em !important; text-transform: uppercase !important;
-    color: #8A847B !important;
+    font: 600 .7rem/1.2 'Inter', sans-serif !important;
+    color: #475569 !important; text-transform: uppercase !important;
 }
 
-/* ── Download button (reuses narrative page's styling) ── */
+.match-count {
+    font: 500 .85rem/1 'Inter', sans-serif; color: #334155;
+    padding: .5rem .8rem; background: #FFFFFF;
+    border: 1px solid #E2E8F0; border-radius: 6px;
+    display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.match-count b { 
+    font-family: 'JetBrains Mono', monospace; 
+    color: #2563EB; font-weight: 700; font-size: 0.95rem;
+}
+
+.chart-label {
+    font: 600 0.75rem/1 'Inter', sans-serif !important;
+    color: #475569 !important; border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 0.4rem; margin-bottom: 0.8rem !important;
+}
+
 div[data-testid="stDownloadButton"] button {
-    background: rgba(61,122,82,0.08) !important;
-    border: 1px solid rgba(61,122,82,0.40) !important;
-    color: #356B49 !important;
-    font: 500 .76rem/1 'Inter', sans-serif !important;
-    letter-spacing: .04em !important;
-    height: auto !important; padding: .6rem 1.4rem !important;
-    box-shadow: none !important;
+    background: #FFFFFF !important; border: 1px solid #CBD5E1 !important;
+    color: #0F172A !important; border-radius: 4px !important;
+    font: 500 .8rem/1 'Inter', sans-serif !important;
 }
 div[data-testid="stDownloadButton"] button:hover {
-    background: rgba(61,122,82,0.14) !important;
-    border-color: rgba(61,122,82,0.65) !important;
-    color: #2A2722 !important;
+    border-color: #2563EB !important; color: #2563EB !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -422,7 +395,7 @@ AgGrid(
     df_grid,
     gridOptions=gb.build(),
     height=620,
-    theme="streamlit",
+    theme="balham",
     allow_unsafe_jscode=True,           # required because we use JsCode above
     update_mode=GridUpdateMode.NO_UPDATE,
     fit_columns_on_grid_load=False,
