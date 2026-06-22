@@ -1,10 +1,7 @@
 """
-MEco Research Dashboard — Complete Single-Page Application (LIGHT THEME · v3)
+MEco Research Dashboard — Complete Single-Page Application (v3)
 "Nature Is Not Optional."
 Based on Jacobs et al. (2025), Biomimetics 2025, 10, 784
-
-Run with:
-    streamlit run app.py
 """
 
 # ════════════════════════════════════════════════════════════════
@@ -887,7 +884,7 @@ else:
 
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 1 · Discovery — 68,972 Attempts   (unchanged)
+# SECTION 1 · Discovery — 68,917 Attempts  
 # ════════════════════════════════════════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-discovery" class="sec-anchor"></div>', unsafe_allow_html=True)
@@ -1039,7 +1036,7 @@ st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
 # ── Radial coverage chart (replaces the treemap) ─────────────
 # Nightingale "area logic": each spoke's length is the SQRT of its paper count,
-# so an 11,097-paper field doesn't make a 58-paper field vanish. Each spoke is
+# so an 11,079-paper field doesn't make a 58-paper field vanish. Each spoke is
 # split into three stacked bands (Support inner · Enhance mid · Replace outer)
 # by that service's R/E/S share. Services with 0 papers leave a visible gap.
 _CAT_ORDER2 = ["Provisioning", "Regulating", "Supporting", "Cultural"]
@@ -1193,7 +1190,7 @@ with _info_col2:
             Each spoke is one ecosystem service, grouped into the four families
             named inside the ring. Spoke length follows the
             <b>square root</b> of its paper count — Nightingale's area logic —
-            so a field with 11,097 papers doesn't make one with 58 vanish.
+            so a field with 11,079 papers doesn't make one with 58 vanish.
             Each spoke splits into three bands: <span class="ib-su">Support</span>,
             <span class="ib-en">Enhance</span>, and <span class="ib-re">Replace</span>,
             by that service's share of each. A missing spoke means zero papers —
