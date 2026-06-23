@@ -29,7 +29,8 @@ st.markdown("""
 
 /* Base configuration */
 .stApp { background: #F8FAFC; color: #0F172A; }
-#MainMenu, footer, header { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
+header { background: transparent !important; }
 section.main > div { padding-top: 1rem; padding-bottom: 2rem; }
 div.block-container { max-width: 1440px; padding-left: 2rem; padding-right: 2rem; }
 
