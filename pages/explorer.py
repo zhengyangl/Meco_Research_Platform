@@ -509,10 +509,10 @@ gb.configure_column("authors", header_name="Authors", width=180, minWidth=180, t
 
 gb.configure_column("pub_year", header_name="Year", width=80, minWidth=80, type=["numericColumn"])
 gb.configure_column("source_title", header_name="Journal", width=180, minWidth=180, tooltipField="source_title")
-gb.configure_column("times_cited", header_name="Citations", width=100, minWidth=100, type=["numericColumn"], sort="desc")
+gb.configure_column("times_cited", header_name="Citations", width=150, minWidth=150, type=["numericColumn"], sort="desc")
 gb.configure_column("open_access", header_name="Access", width=110, minWidth=110)
 
-gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=160, minWidth=160, tooltipField="ecosystem_service")
+gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=200, minWidth=200, tooltipField="ecosystem_service")
 gb.configure_column("service_category", header_name="Family", width=120, minWidth=120)
 gb.configure_column("category", header_name="Paradigm", width=110, minWidth=110, cellStyle=_category_style)
 gb.configure_column("technology", header_name="Technology", width=160, minWidth=160, tooltipField="technology")
