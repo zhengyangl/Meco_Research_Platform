@@ -519,7 +519,7 @@ gb.configure_column("category",           header_name="Paradigm",           widt
 gb.configure_column("technology",         header_name="Technology",         minWidth=160, flex=1.5)
 gb.configure_column("doi",                header_name="DOI",                minWidth=200, flex=1.5, cellRenderer=_doi_renderer)
 
-gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
+gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=20)
 gb.configure_grid_options(domLayout="normal", suppressMenuHide=True, rowHeight=40)
 
 AgGrid(
