@@ -530,6 +530,24 @@ gb.configure_grid_options(
 
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode, ColumnsAutoSizeMode
 
+_custom_css = {
+    ".ag-header-cell-text": {
+        "font-family": "'Inter', sans-serif !important",
+        "font-size": "12px !important",
+        "font-weight": "600 !important",
+        "color": "#64748B !important", 
+        "letter-spacing": "0.02em !important"
+    },
+    ".ag-cell": {
+        "font-family": "'Inter', sans-serif !important",
+        "font-size": "13px !important",
+        "color": "#334155 !important",
+    },
+    ".ag-row-hover": {
+        "background-color": "#F8FAFC !important"
+    }
+}
+
 AgGrid(
     df_grid,
     gridOptions=gb.build(),
@@ -537,8 +555,9 @@ AgGrid(
     theme="balham", 
     allow_unsafe_jscode=True,
     update_mode=GridUpdateMode.NO_UPDATE,
-    columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE, 
+    columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
     enable_enterprise_modules=False,
+    custom_css=_custom_css  
 )
 
 # ════════════════════════════════════════════════════════════════
