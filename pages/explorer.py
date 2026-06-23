@@ -517,14 +517,15 @@ gb.configure_column("service_category", header_name="Family", width=120)
 gb.configure_column("category", header_name="Paradigm", width=110, cellStyle=_category_style)
 gb.configure_column("technology", header_name="Technology", width=160, tooltipField="technology")
 
-gb.configure_column("doi", header_name="DOI", minWidth=160, flex=1, cellRenderer=_doi_renderer)
+gb.configure_column("doi", header_name="DOI", minWidth=160, cellRenderer=_doi_renderer)
 
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
 gb.configure_grid_options(
     domLayout="normal", 
     suppressMenuHide=True, 
     rowHeight=38,          
-    enableBrowserTooltips=True
+    enableBrowserTooltips=True,
+    suppressSizeToFit=True
 )
 
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode, ColumnsAutoSizeMode
@@ -536,7 +537,7 @@ AgGrid(
     theme="balham", 
     allow_unsafe_jscode=True,
     update_mode=GridUpdateMode.NO_UPDATE,
-    columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
+    fit_columns_on_grid_load=False, 
     enable_enterprise_modules=False,
 )
 
