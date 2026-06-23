@@ -2225,11 +2225,6 @@ st.markdown("""
     <a class="final-link" href="https://www.manufacturedecosystems.com" target="_blank">
         manufacturedecosystems.com
     </a>
-    <div style="margin-top:2.5rem;">
-        <a class="hn-secondary" href="/explorer" target="_blank"
-           style="font-size:.78rem; padding:11px 22px;">
-            Explore the data yourself →
-        </a>
     </div>
 </div>
 """, unsafe_allow_html=True)
