@@ -756,7 +756,7 @@ st.markdown("""
 st.markdown("""
 <div class="hero-nav">
   <a class="hn-primary" href="#sec-feel">Take me through the story</a>
-  <a class="hn-secondary" href="/explorer" target="_blank">Data Explorer ↗</a>
+  <a class="hn-secondary" href="/explorer" target="_blank">Data Explorer</a>
 </div>
 """, unsafe_allow_html=True)
 
