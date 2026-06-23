@@ -578,23 +578,37 @@ responses are kept in the `classification_audit` table for replication.
 *Data version: {META.get("dataset_version", "—")} ·
 Aggregate generated: {META.get("generated_at", "—")}*
     """)
-
 # ════════════════════════════════════════════════════════════════
-# EXPORT
+# EXPORT & SHARE
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.0rem;"></div>', unsafe_allow_html=True)
 
-_csv = df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    label=f"⬇ Download Current {len(df):,} Records as CSV",
-    data=_csv,
-    file_name=f"meco_filtered_export.csv",
-    mime="text/csv",
-)
+_export_col, _share_col = st.columns([1, 1])
+
+with _export_col:
+    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Export Data</div>', unsafe_allow_html=True)
+    _csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label=f"⬇ Download Current {len(df):,} Records as CSV",
+        data=_csv,
+        file_name=f"meco_filtered_export.csv",
+        mime="text/csv",
+    )
+
+with _share_col:
+    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View (1-Click Copy)</div>', unsafe_allow_html=True)
+    import urllib.parse
+    current_params = st.query_params.to_dict()
+    query_string = urllib.parse.urlencode(current_params, doseq=True)
+    
+    base_url = "https://demo-v3.streamlit.app/" 
+    full_share_url = f"{base_url}?{query_string}" if query_string else base_url
+    
+    st.code(full_share_url, language="text")
 
 st.markdown(f"""
 <p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
-    Data as of {META.get("dataset_version", "—")} · Derived from 31,559 Decision='Y' non-review papers[cite: 1] · 
+    Data as of {META.get("dataset_version", "—")} · Derived from 31,559 Decision='Y' non-review papers · 
     <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#64748B;text-decoration:underline;">
     View base methodology →</a>
 </p>
