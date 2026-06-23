@@ -376,7 +376,7 @@ _tier_card(_t4, "Long tail", _n_tail,
            f"< {TIERS['median_threshold']:,} citations",  "#94A3B8")
 
 # ════════════════════════════════════════════════════════════════
-# THREE CHARTS (no toggle) — Publication Trend / Top Services / Paradigm
+# THREE CHARTS — Publication Trend / Top Services / Paradigm
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.6rem;"></div>', unsafe_allow_html=True)
 
@@ -448,7 +448,7 @@ else:
     st.info("No data matches the selected filters.")
 
 # ════════════════════════════════════════════════════════════════
-# MAIN TABLE 
+# MAIN TABLE (SaaS-Grade UX: Fixed Height + Tooltips)
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.4rem;"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Detailed Records</div>', unsafe_allow_html=True)
@@ -457,7 +457,6 @@ _doi_renderer = JsCode("""
 class CustomDoiRenderer {
     init(params) {
         this.eGui = document.createElement('a');
-        
         if (params.value) {
             const doi = params.value.replace(/^https?:\\/\\/(dx\\.)?doi\\.org\\//, '');
             this.eGui.innerText = doi + ' ↗';
@@ -468,14 +467,10 @@ class CustomDoiRenderer {
             this.eGui.style.fontWeight = '500';
         }
     }
-    
-    getGui() {
-        return this.eGui;
-    }
+    getGui() { return this.eGui; }
 }
 """)
 
-# Conditional styling for Paradigm (R/E/S)
 _category_style = JsCode("""
 function(params) {
     if (params.value === 'Replace') {
@@ -494,39 +489,49 @@ _grid_cols = [
     "open_access", "ecosystem_service", "service_category", "category",
     "technology", "doi",
 ]
+
 if len(df) == 0:
     st.info("No papers match the current filters. Try clearing some constraints in the sidebar.")
-    st.stop()   # don't render the empty AgGrid below
+    st.stop()
 
 df_grid = df[_grid_cols].copy()
 
 gb = GridOptionsBuilder.from_dataframe(df_grid)
-gb.configure_default_column(filter=True, sortable=True, resizable=True, wrapText=True, autoHeight=False)
 
-gb.configure_column("title", header_name="Title", minWidth=250, width=280, wrapText=True, autoHeight=True, pinned="left")
+gb.configure_default_column(
+    filter=True, sortable=True, resizable=True, 
+    wrapText=False, autoHeight=False, 
+    tooltipValueGetter=JsCode("function(params) { return params.value; }") 
+)
 
-gb.configure_column("authors",            header_name="Authors",            minWidth=180, flex=2)
-gb.configure_column("pub_year",           header_name="Year",               width=80, type=["numericColumn"])
-gb.configure_column("source_title",       header_name="Journal",            minWidth=160, flex=1.5)
-gb.configure_column("times_cited",        header_name="Citations",          width=100, type=["numericColumn"], sort="desc")
-gb.configure_column("open_access",        header_name="Access",             width=110)
-gb.configure_column("ecosystem_service",  header_name="Ecosystem Service",  minWidth=160, flex=1.5)
-gb.configure_column("service_category",   header_name="Family",             width=120)
+gb.configure_column("title", header_name="Title", width=280, maxWidth=350, pinned="left", tooltipField="title")
+gb.configure_column("authors", header_name="Authors", width=180, maxWidth=220, tooltipField="authors")
 
-# CONDITIONAL STYLING applied here
-gb.configure_column("category",           header_name="Paradigm",           width=110, cellStyle=_category_style)
+gb.configure_column("pub_year", header_name="Year", width=80, minWidth=80, type=["numericColumn"])
+gb.configure_column("source_title", header_name="Journal", width=160, maxWidth=220, tooltipField="source_title")
+gb.configure_column("times_cited", header_name="Citations", width=100, minWidth=100, type=["numericColumn"], sort="desc")
+gb.configure_column("open_access", header_name="Access", width=110)
 
-gb.configure_column("technology",         header_name="Technology",         minWidth=160, flex=1.5)
-gb.configure_column("doi",                header_name="DOI",                minWidth=200, flex=1.5, cellRenderer=_doi_renderer)
+gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=160, tooltipField="ecosystem_service")
+gb.configure_column("service_category", header_name="Family", width=120)
+gb.configure_column("category", header_name="Paradigm", width=110, cellStyle=_category_style)
+gb.configure_column("technology", header_name="Technology", width=160, tooltipField="technology")
 
-gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=20)
-gb.configure_grid_options(domLayout="normal", suppressMenuHide=True, rowHeight=40)
+gb.configure_column("doi", header_name="DOI", minWidth=160, flex=2, cellRenderer=_doi_renderer)
+
+gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
+gb.configure_grid_options(
+    domLayout="normal", 
+    suppressMenuHide=True, 
+    rowHeight=38,          
+    enableBrowserTooltips=True
+)
 
 AgGrid(
     df_grid,
     gridOptions=gb.build(),
     height=600,
-    theme="balham", # Professional compact theme
+    theme="balham", 
     allow_unsafe_jscode=True,
     update_mode=GridUpdateMode.NO_UPDATE,
     fit_columns_on_grid_load=False,
