@@ -17,11 +17,11 @@ st.set_page_config(
     page_title="Data Explorer · MEco",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded", 
+    initial_sidebar_state="expanded", # 默认展开侧边栏
 )
 
 # ════════════════════════════════════════════════════════════════
-# GLOBAL CSS 
+# GLOBAL CSS
 # ════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -141,7 +141,7 @@ def load_data() -> tuple:
 df_all, OPTIONS, META = load_data()
 
 # ════════════════════════════════════════════════════════════════
-# SIDEBAR: CASCADING FILTERS 
+# SIDEBAR: CASCADING FILTERS
 # ════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown('<div class="exp-eyebrow">Data Controls</div>', unsafe_allow_html=True)
@@ -200,21 +200,25 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-_header_col, _toggle_col = st.columns([2, 1])
-with _header_col:
-    st.markdown(f'<h1 class="exp-title">{len(df_all):,} Bio-inspired Papers.</h1>', unsafe_allow_html=True)
+st.markdown(f'<h1 class="exp-title">{len(df_all):,} Bio-inspired Papers.</h1>', unsafe_allow_html=True)
+if len(df) > 0:
     st.markdown(
         f'<div class="match-count"><b>{len(df):,}</b> matched</div>'
         f'<div class="match-count"><b>{df["times_cited"].sum():,}</b> citations</div>'
         f'<div class="match-count"><b>{df["ecosystem_service"].nunique()}</b> services</div>',
         unsafe_allow_html=True
     )
+else:
+    st.markdown(
+        '<div class="match-count" style="color:#94A3B8;"><b>0</b> matched · try widening your filters</div>',
+        unsafe_allow_html=True
+    )
 
-with _toggle_col:
-    st.write("") # Spacer
-    view_mode = st.radio("Chart View", ["Ecological Focus", "Academic Sources"], horizontal=True, label_visibility="collapsed")
-
-st.markdown('<div style="margin-top:1.5rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div style="margin-top:1.2rem;"></div>', unsafe_allow_html=True)
+view_mode = st.radio("Chart View",
+                     ["Ecological Focus", "Academic Sources"],
+                     horizontal=True, label_visibility="collapsed")
+st.markdown('<div style="margin-top:0.6rem;"></div>', unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════
 # DYNAMIC VISUALIZATIONS
@@ -269,20 +273,30 @@ if len(df) > 0:
     else: # Academic Sources View
         with _v1:
             st.markdown('<div class="chart-label">Top Journals</div>', unsafe_allow_html=True)
-            by_journal = df["source_title"].value_counts().head(5).reset_index()
+            by_journal = df["source_title"].value_counts().head(5)
+            # Truncate only when needed; keep full name in hover tooltip.
+            _labels = [(n if len(n) <= 28 else n[:27] + "…") for n in by_journal.index]
             fig_j = go.Figure(go.Bar(
-                y=by_journal["source_title"][::-1].str[:25] + "...", x=by_journal["count"][::-1], orientation="h",
-                marker=dict(color="#0F172A"), hovertemplate="%{y}<br><b>%{x:,}</b> papers<extra></extra>"
+                y=_labels[::-1], x=by_journal.values[::-1], orientation="h",
+                customdata=list(by_journal.index)[::-1],
+                marker=dict(color="#0F172A"),
+                hovertemplate="<b>%{customdata}</b><br>%{x:,} papers<extra></extra>"
             ))
             st.plotly_chart(style_fig(fig_j), use_container_width=True, config={"displayModeBar": False})
             
         with _v2:
             st.markdown('<div class="chart-label">Citation Distribution (Log)</div>', unsafe_allow_html=True)
+            # Most citation distributions are heavily right-skewed (long tail).
+            # Plot log(1+citations) on X so the tail compresses visually
+            # but the Y axis stays an intuitive "paper count".
+            import numpy as _np
+            _log_cit = _np.log1p(df["times_cited"])
             fig_cit = go.Figure(go.Histogram(
-                x=df["times_cited"], nbinsx=30, marker_color="#475569", hovertemplate="%{x} citations<br>%{y} papers<extra></extra>"
+                x=_log_cit, nbinsx=30, marker_color="#475569",
+                hovertemplate="log(1+citations) = %{x:.1f}<br>%{y} papers<extra></extra>"
             ))
             fig_cit = style_fig(fig_cit)
-            fig_cit.update_layout(yaxis_type="log")
+            fig_cit.update_xaxes(title=dict(text="log(1+citations)", font=dict(size=9, color="#94A3B8")))
             st.plotly_chart(fig_cit, use_container_width=True, config={"displayModeBar": False})
 
         with _v3:
@@ -346,6 +360,10 @@ _grid_cols = [
     "open_access", "ecosystem_service", "service_category", "category",
     "technology", "doi",
 ]
+if len(df) == 0:
+    st.info("No papers match the current filters. Try clearing some constraints in the sidebar.")
+    st.stop()   # don't render the empty AgGrid below
+
 df_grid = df[_grid_cols].copy()
 
 gb = GridOptionsBuilder.from_dataframe(df_grid)
