@@ -17,7 +17,7 @@ st.set_page_config(
     page_title="Data Explorer · MEco",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded", # 默认展开侧边栏
+    initial_sidebar_state="expanded", 
 )
 
 # ════════════════════════════════════════════════════════════════
@@ -124,15 +124,28 @@ def load_data() -> tuple:
     df["times_cited"] = pd.to_numeric(df["times_cited"], errors="coerce").fillna(0).astype(int)
     df["open_access"] = df["open_access"].fillna("Closed")
     
+
+    import numpy as np
+    journal_counts = df["source_title"].value_counts()
+    major_journals = journal_counts[journal_counts >= 100].index.tolist()
+    
+    major_journals = sorted(major_journals) 
+    
+    df["journal_bucket"] = np.where(
+        df["source_title"].isin(major_journals),
+        df["source_title"],
+        "Other Journals"
+    )
+    
     # 2. Pre-compute dropdown options to save CPU cycles on reruns
     options = {
         "years": sorted(df["pub_year"].dropna().unique().tolist()),
         "categories": ["Replace", "Enhance", "Support"],
         "families": sorted(df["service_category"].dropna().unique().tolist()),
         "services": sorted(df["ecosystem_service"].dropna().unique().tolist()),
-        "oa": sorted(df["open_access"].dropna().unique().tolist())
+        "oa": sorted(df["open_access"].dropna().unique().tolist()),
+        "journals": major_journals + ["Other Journals"] 
     }
-    
     # 3. Load Meta
     with open(_DATA_DIR / "corpus_meta.json", encoding="utf-8") as f:
         meta = json.load(f)
@@ -183,6 +196,8 @@ _dflt_year_max = int(_qp.get("year_max", OPTIONS["years"][-1]))
 _dflt_paradigm = _read_qp_list("paradigm", set(OPTIONS["categories"]))
 _dflt_family   = _read_qp_list("family",   set(OPTIONS["families"]))
 _dflt_service  = _read_qp_list("service",  set(OPTIONS["services"]))
+_dflt_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
+
 try:
     _dflt_min_cit = max(0, int(_qp.get("min_cited", 0)))
 except (TypeError, ValueError):
@@ -232,6 +247,7 @@ with st.sidebar:
                                     help="Filter out newly published or low-impact papers.")
 
     with st.expander("📚 Publication Details", expanded=False):
+        f_journal = st.multiselect("Source Journal", options=OPTIONS["journals"], default=_dflt_journal)
         f_oa = st.multiselect("Open Access Status", options=OPTIONS["oa"], default=[])
 
 # ════════════════════════════════════════════════════════════════
@@ -248,6 +264,8 @@ if f_family:
     _new_qp["family"] = ",".join(f_family)
 if f_service:
     _new_qp["service"] = ",".join(f_service)
+if f_journal:                                 
+    _new_qp["journal"] = ",".join(f_journal)
 if f_min_cit > 0:
     _new_qp["min_cited"] = str(f_min_cit)
 
@@ -266,6 +284,8 @@ df = df[(df["pub_year"] >= f_year[0]) & (df["pub_year"] <= f_year[1])]
 if f_category: df = df[df["category"].isin(f_category)]
 if f_family:   df = df[df["service_category"].isin(f_family)]
 if f_service:  df = df[df["ecosystem_service"].isin(f_service)]
+
+if f_journal:  df = df[df["journal_bucket"].isin(f_journal)]
 if f_oa:       df = df[df["open_access"].isin(f_oa)]
 if f_min_cit > 0: df = df[df["times_cited"] >= f_min_cit]
 
@@ -464,7 +484,7 @@ class CustomDoiRenderer {
             this.eGui.target = '_blank';
             this.eGui.style.color = '#2563EB';
             this.eGui.style.textDecoration = 'none';
-            this.eGui.style.fontWeight = '300';
+            this.eGui.style.fontWeight = '400';
         }
     }
     getGui() { return this.eGui; }
@@ -510,11 +530,11 @@ gb.configure_column("authors", header_name="Authors", width=180, minWidth=180, t
 gb.configure_column("pub_year", header_name="Year", width=80, minWidth=80, type=["numericColumn"])
 gb.configure_column("source_title", header_name="Journal", width=180, minWidth=180, tooltipField="source_title")
 gb.configure_column("times_cited", header_name="Citations", width=150, minWidth=150, type=["numericColumn"], sort="desc")
-gb.configure_column("open_access", header_name="Access", width=150, minWidth=150)
+gb.configure_column("open_access", header_name="Access", width=110, minWidth=110)
 
 gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=200, minWidth=200, tooltipField="ecosystem_service")
 gb.configure_column("service_category", header_name="Family", width=120, minWidth=120)
-gb.configure_column("category", header_name="Paradigm", width=150, minWidth=150, cellStyle=_category_style)
+gb.configure_column("category", header_name="Paradigm", width=110, minWidth=110, cellStyle=_category_style)
 gb.configure_column("technology", header_name="Technology", width=160, minWidth=160, tooltipField="technology")
 
 gb.configure_column("doi", header_name="DOI", width=220, minWidth=220, cellRenderer=_doi_renderer)
@@ -529,6 +549,7 @@ gb.configure_grid_options(
 )
 
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode, ColumnsAutoSizeMode
+
 
 _custom_css = {
     ".ag-header-cell-text": {
