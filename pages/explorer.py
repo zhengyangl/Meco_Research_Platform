@@ -596,15 +596,15 @@ with _export_col:
     )
 
 with _share_col:
-    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View (1-Click Copy)</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
     import urllib.parse
     current_params = st.query_params.to_dict()
     query_string = urllib.parse.urlencode(current_params, doseq=True)
     
-    base_url = "https://demo-v3.streamlit.app/" 
+    base_url = "https://demo-v3.streamlit.app/explorer" 
     full_share_url = f"{base_url}?{query_string}" if query_string else base_url
     
-    st.code(full_share_url, language="text")
+    st.text_input("share_url", value=full_share_url, label_visibility="collapsed")
 
 st.markdown(f"""
 <p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
