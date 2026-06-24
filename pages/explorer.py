@@ -109,6 +109,24 @@ div[data-testid="stRadio"] label {
     font: 600 .7rem/1.2 'Inter', sans-serif !important;
     color: #475569 !important; text-transform: uppercase !important;
 }
+
+/* Sidebar "Clear all" button — subtle, ghost-style */
+[data-testid="stSidebar"] div[data-testid="stButton"] > button {
+    background: transparent !important;
+    border: 1px solid #E2E8F0 !important;
+    color: #64748B !important;
+    font: 500 .68rem/1 'Inter', sans-serif !important;
+    letter-spacing: .03em !important;
+    padding: .35rem .6rem !important;
+    border-radius: 4px !important;
+    height: auto !important;
+    box-shadow: none !important;
+}
+[data-testid="stSidebar"] div[data-testid="stButton"] > button:hover {
+    border-color: #DC2626 !important;
+    color: #DC2626 !important;
+    background: rgba(220, 38, 38, 0.04) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -208,7 +226,20 @@ except (TypeError, ValueError):
 # SIDEBAR: CASCADING FILTERS
 # ════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown('<div class="exp-eyebrow">Data Controls</div>', unsafe_allow_html=True)
+    _eb, _reset = st.columns([2, 1])
+    with _eb:
+        st.markdown('<div class="exp-eyebrow">Data Controls</div>', unsafe_allow_html=True)
+    with _reset:
+        if st.button("Clear all", key="clear_filters_btn",
+                     help="Reset every filter to its default value.",
+                     use_container_width=True):
+            st.query_params.clear()
+            # Drop any session-state keys we might have set elsewhere
+            # (e.g. share button toggle), so the page feels fully fresh.
+            for _k in list(st.session_state.keys()):
+                if _k != "clear_filters_btn":
+                    del st.session_state[_k]
+            st.rerun()
     
     f_search = st.text_input("🔍 Global Search", placeholder="Title, author, keyword...")
     st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
