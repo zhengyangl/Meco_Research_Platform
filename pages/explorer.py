@@ -651,8 +651,9 @@ the dashboard always reads `is_current = TRUE` rows. Raw LLM JSON
 responses are kept in the `classification_audit` table for replication.
 
 **Reproduce these numbers.** The full pipeline (ingestion → LLM classify
-→ aggregate → static JSON/Parquet) lives in `pipeline/`. See
-`docs/handover.md` for the 5-step update procedure.
+→ aggregate → static JSON/Parquet) is fully open-source. See the 
+[**GitHub Repository ↗**](https://github.com/XX/data_platform) 
+for the codebase and `docs/handover.md` for the 5-step update procedure.
 
 *Data version: {META.get("dataset_version", "—")} ·
 Aggregate generated: {META.get("generated_at", "—")}*
