@@ -278,38 +278,6 @@ with st.sidebar:
             st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
         st.multiselect("Open Access Status", options=OPTIONS["oa"], key="f_oa")
 
-# ═══════════════════════════
-# URL STATE SYNC
-# ═══════════════════════════
-_new_qp = {}
-if st.session_state.f_year[0] != OPTIONS["years"][0]:
-    _new_qp["year_min"] = str(st.session_state.f_year[0])
-if st.session_state.f_year[-1] != OPTIONS["years"][-1]:
-    _new_qp["year_max"] = str(st.session_state.f_year[-1])
-if st.session_state.f_category:
-    _new_qp["paradigm"] = ",".join(st.session_state.f_category)
-if st.session_state.f_family:
-    _new_qp["family"] = ",".join(st.session_state.f_family)
-if st.session_state.f_service:
-    _new_qp["service"] = ",".join(st.session_state.f_service)
-if st.session_state.f_journal:                                     
-    _new_qp["journal"] = ",".join(st.session_state.f_journal)
-if st.session_state.f_min_cit > 0:
-    _new_qp["min_cited"] = str(st.session_state.f_min_cit)
-
-_current_qp = dict(st.query_params)
-if _new_qp != _current_qp:
-    
-    # 1. Delete keys that are in the current URL but not in the new state
-    for k in list(_current_qp.keys()):
-        if k not in _new_qp:
-            del st.query_params[k]
-            
-    # 2. Update ONLY the keys that have actually changed
-    for k, v in _new_qp.items():
-        if _current_qp.get(k) != v:
-            st.query_params[k] = v
-
 # ══════════════════════════
 # APPLY FILTERS
 # ══════════════════════════
@@ -675,8 +643,24 @@ with _export_col:
 
 with _share_col:
     st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
-    current_params = st.query_params.to_dict()
-    query_string = urllib.parse.urlencode(current_params, doseq=True)
+
+    _share_params = {}
+    if st.session_state.f_year[0] != OPTIONS["years"][0]: 
+        _share_params["year_min"] = st.session_state.f_year[0]
+    if st.session_state.f_year[-1] != OPTIONS["years"][-1]: 
+        _share_params["year_max"] = st.session_state.f_year[-1]
+    if st.session_state.f_category: 
+        _share_params["paradigm"] = ",".join(st.session_state.f_category)
+    if st.session_state.f_family: 
+        _share_params["family"] = ",".join(st.session_state.f_family)
+    if st.session_state.f_service: 
+        _share_params["service"] = ",".join(st.session_state.f_service)
+    if st.session_state.f_journal:                                     
+        _share_params["journal"] = ",".join(st.session_state.f_journal)
+    if st.session_state.f_min_cit > 0: 
+        _share_params["min_cited"] = st.session_state.f_min_cit
+
+    query_string = urllib.parse.urlencode(_share_params, doseq=True)
     
     base_url = "https://demo-v3.streamlit.app/explorer" 
     full_share_url = f"{base_url}?{query_string}" if query_string else base_url
