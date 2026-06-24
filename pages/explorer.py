@@ -681,22 +681,40 @@ with _share_col:
         'text-transform: uppercase;">Share This View</div>',
         unsafe_allow_html=True
     )
-    
-    st.markdown("""
+
+    current_params = st.query_params.to_dict()
+    query_string = urllib.parse.urlencode(current_params, doseq=True)
+    base_url = "https://demo-v3.streamlit.app/explorer" 
+    full_share_url = f"{base_url}?{query_string}" if query_string else base_url
+
+    st.markdown(f"""
     <div>
-      <textarea id="meco-share-url" readonly aria-hidden="true"
-                style="position:absolute; left:-9999px; opacity:0;
-                       pointer-events:none;"></textarea>
       <button id="meco-share-btn" onclick="
-          const t = document.getElementById('meco-share-url');
-          const url = window.location.origin + window.location.pathname + window.location.search;
-          t.value = url;
-          t.select();
-          t.setSelectionRange(0, 99999);
-          let ok = false;
-          try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-          this.innerText = ok ? '✓ Copied to clipboard' : '✗ Copy failed — select URL manually';
-          setTimeout(() => { this.innerText = '🔗 Copy share URL'; }, 1800);
+          const btn = this;
+          const url = '{full_share_url}';
+          
+          if (navigator.clipboard && window.isSecureContext) {{
+              navigator.clipboard.writeText(url).then(() => {{
+                  btn.innerText = '✓ Copied to clipboard';
+                  setTimeout(() => {{ btn.innerText = '🔗 Copy share URL'; }}, 2000);
+              }});
+          }} else {{
+              const t = document.createElement('textarea');
+              t.value = url;
+              t.style.position = 'absolute';
+              t.style.left = '-9999px';
+              document.body.appendChild(t);
+              t.select();
+              try {{
+                  document.execCommand('copy');
+                  btn.innerText = '✓ Copied to clipboard';
+              }} catch (e) {{
+                  btn.innerText = '✗ Copy failed';
+              }} finally {{
+                  document.body.removeChild(t);
+                  setTimeout(() => {{ btn.innerText = '🔗 Copy share URL'; }}, 2000);
+              }}
+          }}
       " style="
           width: 100%;
           background: #FFFFFF;
