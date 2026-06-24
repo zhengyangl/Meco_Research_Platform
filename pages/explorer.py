@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
                        JsCode, ColumnsAutoSizeMode)
+import urllib.parse
 # ════════════════════════════════════════════════════════════════
 # PAGE CONFIG 
 # ════════════════════════════════════════════════════════════════
@@ -644,19 +645,34 @@ with _export_col:
 
 with _share_col:
     st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
-    import urllib.parse
+    
     current_params = st.query_params.to_dict()
     query_string = urllib.parse.urlencode(current_params, doseq=True)
     
-    base_url = "https://demo-v3.streamlit.app/explorer" 
-    full_share_url = f"{base_url}?{query_string}" if query_string else base_url
-    
-    st.text_input("share_url", value=full_share_url, label_visibility="collapsed")
-
-st.markdown(f"""
-<p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
-    Data as of {META.get("dataset_version", "—")} · Derived from 31,559 Decision='Y' non-review papers · 
-    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#64748B;text-decoration:underline;">
-    View base methodology →</a>
-</p>
-""", unsafe_allow_html=True)
+    if query_string:
+        share_text = f"?{query_string}"
+        # HTML button that copies to clipboard via JavaScript on click.
+        # No backend roundtrip — the share text is baked into the page.
+        st.markdown(f"""
+        <button onclick="
+            navigator.clipboard.writeText(window.location.origin + window.location.pathname + '{share_text}');
+            this.innerText = '✓ Copied!';
+            setTimeout(() => this.innerText = '🔗 Copy share URL', 1500);
+        " style="
+            background: #FFFFFF; border: 1px solid #CBD5E1;
+            color: #0F172A; border-radius: 4px;
+            font: 500 .8rem/1 'Inter', sans-serif;
+            padding: 0.5rem 1rem; cursor: pointer;
+            transition: all .15s;
+        " onmouseover="this.style.borderColor='#2563EB';this.style.color='#2563EB';"
+           onmouseout="this.style.borderColor='#CBD5E1';this.style.color='#0F172A';">
+            🔗 Copy share URL
+        </button>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(
+            '<div style="font:400 .75rem/1.5 Inter,sans-serif;color:#94A3B8;padding:.6rem 0;">'
+            'Apply filters first to generate a sharable URL.'
+            '</div>',
+            unsafe_allow_html=True
+        )
