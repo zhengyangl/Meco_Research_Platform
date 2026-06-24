@@ -259,7 +259,12 @@ with st.sidebar:
         else:
             _valid_services = OPTIONS["services"]
             
-        st.session_state.f_service = [s for s in st.session_state.f_service if s in _valid_services]
+        _current_f_service = st.session_state.f_service
+        _filtered_service = [s for s in _current_f_service if s in _valid_services]
+        
+        if _filtered_service != _current_f_service:
+            st.session_state.f_service = _filtered_service
+            
         st.multiselect("Ecosystem Service", options=_valid_services, key="f_service")
 
     with st.expander("📅 Time & Impact", expanded=True):
@@ -294,9 +299,16 @@ if st.session_state.f_min_cit > 0:
 
 _current_qp = dict(st.query_params)
 if _new_qp != _current_qp:
-    st.query_params.clear()
+    
+    # 1. Delete keys that are in the current URL but not in the new state
+    for k in list(_current_qp.keys()):
+        if k not in _new_qp:
+            del st.query_params[k]
+            
+    # 2. Update ONLY the keys that have actually changed
     for k, v in _new_qp.items():
-        st.query_params[k] = v
+        if _current_qp.get(k) != v:
+            st.query_params[k] = v
 
 # ══════════════════════════
 # APPLY FILTERS
