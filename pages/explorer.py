@@ -1,5 +1,5 @@
 """
-Data Explorer · Manufactured Ecosystems Research Database
+Data Explorer
 """
 
 import json
@@ -11,9 +11,10 @@ import streamlit as st
 from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
                        JsCode, ColumnsAutoSizeMode)
 import urllib.parse
-# ════════════════════════════════════════════════════════════════
+
+# ═══════════════════
 # PAGE CONFIG 
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════
 st.set_page_config(
     page_title="Data Explorer · MEco",
     page_icon="🔍",
@@ -21,9 +22,9 @@ st.set_page_config(
     initial_sidebar_state="expanded", 
 )
 
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════
 # GLOBAL CSS
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
@@ -210,32 +211,36 @@ def _read_qp_list(key, valid_set):
     return [v for v in raw.split(",") if v in valid_set]
 
 # Defaults driven by URL (fall back to empty / full range when absent).
-_dflt_year_min = int(_qp.get("year_min", OPTIONS["years"][0]))
-_dflt_year_max = int(_qp.get("year_max", OPTIONS["years"][-1]))
-_dflt_paradigm = _read_qp_list("paradigm", set(OPTIONS["categories"]))
-_dflt_family   = _read_qp_list("family",   set(OPTIONS["families"]))
-_dflt_service  = _read_qp_list("service",  set(OPTIONS["services"]))
-_dflt_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
 
-try:
-    _dflt_min_cit = max(0, int(_qp.get("min_cited", 0)))
-except (TypeError, ValueError):
-    _dflt_min_cit = 0
+if "state_initialized" not in st.session_state:
+    st.session_state.state_initialized = True
+    st.session_state.f_category = _read_qp_list("paradigm", set(OPTIONS["categories"]))
+    st.session_state.f_family   = _read_qp_list("family",   set(OPTIONS["families"]))
+    st.session_state.f_service  = _read_qp_list("service",  set(OPTIONS["services"]))
+    st.session_state.f_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
+    st.session_state.f_oa       = [] 
+    
+    _dflt_year_min = int(_qp.get("year_min", OPTIONS["years"][0]))
+    _dflt_year_max = int(_qp.get("year_max", OPTIONS["years"][-1]))
+    st.session_state.f_year = (
+        max(int(OPTIONS["years"][0]), min(int(OPTIONS["years"][-1]), _dflt_year_min)),
+        max(int(OPTIONS["years"][0]), min(int(OPTIONS["years"][-1]), _dflt_year_max))
+    )
+    try:
+        st.session_state.f_min_cit = max(0, int(_qp.get("min_cited", 0)))
+    except (TypeError, ValueError):
+        st.session_state.f_min_cit = 0
 
-# ════════════════════════════════════════════════════════════════
+# ════════════════════════════════
 # SIDEBAR: CASCADING FILTERS
-# ════════════════════════════════════════════════════════════════
+# ════════════════════════════════
 with st.sidebar:
     _eb, _reset = st.columns([2, 1])
     with _eb:
         st.markdown('<div class="exp-eyebrow">Data Controls</div>', unsafe_allow_html=True)
     with _reset:
-        if st.button("Clear all", key="clear_filters_btn",
-                     help="Reset every filter to its default value.",
-                     use_container_width=True):
+        if st.button("Clear all", key="clear_filters_btn", use_container_width=True):
             st.query_params.clear()
-            # Drop any session-state keys we might have set elsewhere
-            # (e.g. share button toggle), so the page feels fully fresh.
             for _k in list(st.session_state.keys()):
                 if _k != "clear_filters_btn":
                     del st.session_state[_k]
@@ -245,83 +250,65 @@ with st.sidebar:
     st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
     
     with st.expander("🌿 Ecological Focus", expanded=True):
-        # Default values come from URL (see URL STATE SYNC above).
-        f_category = st.multiselect("Paradigm (R/E/S)",
-                                    options=OPTIONS["categories"],
-                                    default=_dflt_paradigm)
-        f_family = st.multiselect("Service Family",
-                                  options=OPTIONS["families"],
-                                  default=_dflt_family)
+        st.multiselect("Paradigm (R/E/S)", options=OPTIONS["categories"], key="f_category")
+        st.multiselect("Service Family", options=OPTIONS["families"], key="f_family")
         
-        if f_family:
-            _valid_services = df_all[df_all["service_category"].isin(f_family)]["ecosystem_service"].unique().tolist()
+        if st.session_state.f_family:
+            _valid_services = df_all[df_all["service_category"].isin(st.session_state.f_family)]["ecosystem_service"].unique().tolist()
             _valid_services = sorted(_valid_services)
         else:
             _valid_services = OPTIONS["services"]
-        # Keep only services that survive the cascading filter.
-        _dflt_service_filtered = [s for s in _dflt_service if s in _valid_services]
-        f_service = st.multiselect("Ecosystem Service",
-                                   options=_valid_services,
-                                   default=_dflt_service_filtered)
+            
+        st.session_state.f_service = [s for s in st.session_state.f_service if s in _valid_services]
+        st.multiselect("Ecosystem Service", options=_valid_services, key="f_service")
 
     with st.expander("📅 Time & Impact", expanded=True):
         _min_y, _max_y = int(OPTIONS["years"][0]), int(OPTIONS["years"][-1])
-        # Clamp URL-supplied years to the valid range.
-        _y0 = max(_min_y, min(_max_y, _dflt_year_min))
-        _y1 = max(_min_y, min(_max_y, _dflt_year_max))
-        if _y0 > _y1:
-            _y0, _y1 = _min_y, _max_y
-        f_year = st.slider("Publication Year",
-                           min_value=_min_y, max_value=_max_y,
-                           value=(_y0, _y1))
-        f_min_cit = st.number_input("Minimum Citations",
-                                    min_value=0, value=_dflt_min_cit, step=10, 
-                                    help="Filter out newly published or low-impact papers.")
+        st.slider("Publication Year", min_value=_min_y, max_value=_max_y, key="f_year")
+        st.number_input("Minimum Citations", min_value=0, step=10, key="f_min_cit")
 
     with st.expander("📚 Publication Details", expanded=False):
-        f_journal = st.multiselect("Source Journal", options=OPTIONS["journals"], default=_dflt_journal)
-        if "Other Journals" in f_journal:
+        st.multiselect("Source Journal", options=OPTIONS["journals"], key="f_journal")
+        if "Other Journals" in st.session_state.f_journal:
             st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
-        f_oa = st.multiselect("Open Access Status", options=OPTIONS["oa"], default=[])
+        st.multiselect("Open Access Status", options=OPTIONS["oa"], key="f_oa")
 
-# ════════════════════════════════════════════════════════════════
-# URL STATE SYNC 
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════════════
+# URL STATE SYNC
+# ═══════════════════════════
 _new_qp = {}
-if f_year[0] != OPTIONS["years"][0]:
-    _new_qp["year_min"] = str(f_year[0])
-if f_year[-1] != OPTIONS["years"][-1]:
-    _new_qp["year_max"] = str(f_year[-1])
-if f_category:
-    _new_qp["paradigm"] = ",".join(f_category)
-if f_family:
-    _new_qp["family"] = ",".join(f_family)
-if f_service:
-    _new_qp["service"] = ",".join(f_service)
-if f_journal:                                 
-    _new_qp["journal"] = ",".join(f_journal)
-if f_min_cit > 0:
-    _new_qp["min_cited"] = str(f_min_cit)
+if st.session_state.f_year[0] != OPTIONS["years"][0]:
+    _new_qp["year_min"] = str(st.session_state.f_year[0])
+if st.session_state.f_year[-1] != OPTIONS["years"][-1]:
+    _new_qp["year_max"] = str(st.session_state.f_year[-1])
+if st.session_state.f_category:
+    _new_qp["paradigm"] = ",".join(st.session_state.f_category)
+if st.session_state.f_family:
+    _new_qp["family"] = ",".join(st.session_state.f_family)
+if st.session_state.f_service:
+    _new_qp["service"] = ",".join(st.session_state.f_service)
+if st.session_state.f_journal:                                     
+    _new_qp["journal"] = ",".join(st.session_state.f_journal)
+if st.session_state.f_min_cit > 0:
+    _new_qp["min_cited"] = str(st.session_state.f_min_cit)
 
-# Only write if something changed — avoids extra reruns on every interaction.
 _current_qp = dict(st.query_params)
 if _new_qp != _current_qp:
     st.query_params.clear()
     for k, v in _new_qp.items():
         st.query_params[k] = v
 
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════
 # APPLY FILTERS
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════════
 df = df_all
-df = df[(df["pub_year"] >= f_year[0]) & (df["pub_year"] <= f_year[1])]
-if f_category: df = df[df["category"].isin(f_category)]
-if f_family:   df = df[df["service_category"].isin(f_family)]
-if f_service:  df = df[df["ecosystem_service"].isin(f_service)]
-
-if f_journal:  df = df[df["journal_bucket"].isin(f_journal)]
-if f_oa:       df = df[df["open_access"].isin(f_oa)]
-if f_min_cit > 0: df = df[df["times_cited"] >= f_min_cit]
+df = df[(df["pub_year"] >= st.session_state.f_year[0]) & (df["pub_year"] <= st.session_state.f_year[1])]
+if st.session_state.f_category: df = df[df["category"].isin(st.session_state.f_category)]
+if st.session_state.f_family:   df = df[df["service_category"].isin(st.session_state.f_family)]
+if st.session_state.f_service:  df = df[df["ecosystem_service"].isin(st.session_state.f_service)]
+if st.session_state.f_journal:  df = df[df["journal_bucket"].isin(st.session_state.f_journal)]
+if st.session_state.f_oa:       df = df[df["open_access"].isin(st.session_state.f_oa)]
+if st.session_state.f_min_cit > 0: df = df[df["times_cited"] >= st.session_state.f_min_cit]
 
 if f_search:
     q = f_search.lower()
@@ -333,9 +320,9 @@ if f_search:
     )
     df = df[mask]
 
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 # MAIN AREA: HEADER + HEALTH BAR
-# ════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 st.markdown("""
 <div class="hero-nav">
   <a class="hn-secondary" href="/">← Back to the story</a>
@@ -501,9 +488,9 @@ if len(df) > 0:
 else:
     st.info("No data matches the selected filters.")
 
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════
 # MAIN TABLE 
-# ════════════════════════════════════════════════════════════════
+# ══════════════════════
 st.markdown('<div style="margin-top:1.4rem;"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Detailed Records</div>', unsafe_allow_html=True)
 
@@ -616,8 +603,7 @@ AgGrid(
 # METHODOLOGY PANEL 
 # ════════════════════════════════════════════════════════════════
 # Folded by default so it doesn't compete with the main UI, but always
-# one click away. The point is to make every step from raw WoS export to
-# the numbers on this page auditable without leaving the page.
+# one click away.
 st.markdown('<div style="margin-top:1.4rem;"></div>', unsafe_allow_html=True)
 with st.expander("📊 How were these papers classified? (Methodology & data lineage)"):
     st.markdown(f"""
