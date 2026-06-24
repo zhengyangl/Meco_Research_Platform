@@ -675,65 +675,19 @@ with _export_col:
     )
 
 with _share_col:
-    st.markdown(
-        '<div style="font: 600 .65rem/1.2 Inter, sans-serif; '
-        'letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; '
-        'text-transform: uppercase;">Share This View</div>',
-        unsafe_allow_html=True
-    )
-    
-    # 1. 在 Python 端算好完整的分享链接 (避免 JS 抓取 iframe 内部地址)
-    import urllib.parse
+    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
     current_params = st.query_params.to_dict()
     query_string = urllib.parse.urlencode(current_params, doseq=True)
+    
     base_url = "https://demo-v3.streamlit.app/explorer" 
     full_share_url = f"{base_url}?{query_string}" if query_string else base_url
+    
+    st.text_input("share_url", value=full_share_url, label_visibility="collapsed")
 
-    # 2. 注入 JS，使用现代的 navigator.clipboard 接口
-    st.markdown(f"""
-    <div>
-      <button id="meco-share-btn" onclick="
-          const btn = this;
-          const url = '{full_share_url}';
-          
-          if (navigator.clipboard && window.isSecureContext) {{
-              // 现代浏览器原生复制 API，安全且无需渲染真实 dom
-              navigator.clipboard.writeText(url).then(() => {{
-                  btn.innerText = '✓ Copied to clipboard';
-                  setTimeout(() => {{ btn.innerText = '🔗 Copy share URL'; }}, 2000);
-              }});
-          }} else {{
-              // 优雅降级：为极少数不支持的旧浏览器创建临时元素
-              const t = document.createElement('textarea');
-              t.value = url;
-              t.style.position = 'absolute';
-              t.style.left = '-9999px';
-              document.body.appendChild(t);
-              t.select();
-              try {{
-                  document.execCommand('copy');
-                  btn.innerText = '✓ Copied to clipboard';
-              }} catch (e) {{
-                  btn.innerText = '✗ Copy failed';
-              }} finally {{
-                  document.body.removeChild(t);
-                  setTimeout(() => {{ btn.innerText = '🔗 Copy share URL'; }}, 2000);
-              }}
-          }}
-      " style="
-          width: 100%;
-          background: #FFFFFF;
-          border: 1px solid #CBD5E1;
-          color: #0F172A;
-          border-radius: 4px;
-          font: 500 .8rem/1 'Inter', sans-serif;
-          padding: .55rem 1rem;
-          cursor: pointer;
-          transition: all .15s;
-          text-align: left;
-      " onmouseover="this.style.borderColor='#2563EB';this.style.color='#2563EB';"
-         onmouseout="this.style.borderColor='#CBD5E1';this.style.color='#0F172A';">
-        🔗 Copy share URL
-      </button>
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown(f"""
+<p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
+    Data as of {META.get("dataset_version", "—")} · Derived from 31,559 Decision='Y' non-review papers · 
+    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#64748B;text-decoration:underline;">
+    View base methodology →</a>
+</p>
+""", unsafe_allow_html=True)
