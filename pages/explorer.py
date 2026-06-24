@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
@@ -144,7 +145,6 @@ def load_data() -> tuple:
     df["open_access"] = df["open_access"].fillna("Closed")
     
 
-    import numpy as np
     journal_counts = df["source_title"].value_counts()
     major_journals = journal_counts[journal_counts >= 100].index.tolist()
     
