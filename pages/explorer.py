@@ -144,8 +144,6 @@ def load_data() -> tuple:
     df["times_cited"] = pd.to_numeric(df["times_cited"], errors="coerce").fillna(0).astype(int)
     df["open_access"] = df["open_access"].fillna("Closed")
     
-
-    import numpy as np
     journal_counts = df["source_title"].value_counts()
     major_journals = journal_counts[journal_counts >= 100].index.tolist()
     
@@ -192,45 +190,6 @@ df_all, OPTIONS, META, TIERS = load_data()
 _OA_PCT = round((df_all["open_access"] != "Closed").mean() * 100)
 _MEDIAN_CITED = int(df_all["times_cited"].median())
 
-# ════════════════════════════════════════════════════════════════
-# URL STATE SYNC 
-# ════════════════════════════════════════════════════════════════
-# Lets a researcher share a precise view by URL. Five core filters round-
-# trip through st.query_params:
-#     year_min, year_max, paradigm, family, service, min_cited
-# Free-text search and OA status are deliberately NOT synced — search
-# strings are session-scoped scratch input, and OA is a single click to
-# toggle. We only sync the long-form filter state.
-_qp = st.query_params
-def _read_qp_list(key, valid_set):
-    """Read a comma-separated multiselect default from URL, keeping only
-    values that exist in the current dataset (defends against stale URLs)."""
-    raw = _qp.get(key, "")
-    if not raw:
-        return []
-    return [v for v in raw.split(",") if v in valid_set]
-
-# Defaults driven by URL (fall back to empty / full range when absent).
-
-if "state_initialized" not in st.session_state:
-    st.session_state.state_initialized = True
-    st.session_state.f_category = _read_qp_list("paradigm", set(OPTIONS["categories"]))
-    st.session_state.f_family   = _read_qp_list("family",   set(OPTIONS["families"]))
-    st.session_state.f_service  = _read_qp_list("service",  set(OPTIONS["services"]))
-    st.session_state.f_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
-    st.session_state.f_oa       = [] 
-    
-    _dflt_year_min = int(_qp.get("year_min", OPTIONS["years"][0]))
-    _dflt_year_max = int(_qp.get("year_max", OPTIONS["years"][-1]))
-    st.session_state.f_year = (
-        max(int(OPTIONS["years"][0]), min(int(OPTIONS["years"][-1]), _dflt_year_min)),
-        max(int(OPTIONS["years"][0]), min(int(OPTIONS["years"][-1]), _dflt_year_max))
-    )
-    try:
-        st.session_state.f_min_cit = max(0, int(_qp.get("min_cited", 0)))
-    except (TypeError, ValueError):
-        st.session_state.f_min_cit = 0
-
 # ════════════════════════════════
 # SIDEBAR: CASCADING FILTERS
 # ════════════════════════════════
@@ -239,56 +198,46 @@ with st.sidebar:
     with _eb:
         st.markdown('<div class="exp-eyebrow">Data Controls</div>', unsafe_allow_html=True)
     with _reset:
-        if st.button("Clear all", key="clear_filters_btn", use_container_width=True):
-            st.query_params.clear()
-            for _k in list(st.session_state.keys()):
-                if _k != "clear_filters_btn":
-                    del st.session_state[_k]
+        if st.button("Clear all", use_container_width=True):
             st.rerun()
     
     f_search = st.text_input("🔍 Global Search", placeholder="Title, author, keyword...")
     st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
     
     with st.expander("🌿 Ecological Focus", expanded=True):
-        st.multiselect("Paradigm (R/E/S)", options=OPTIONS["categories"], key="f_category")
-        st.multiselect("Service Family", options=OPTIONS["families"], key="f_family")
+        f_category = st.multiselect("Paradigm (R/E/S)", options=OPTIONS["categories"])
+        f_family   = st.multiselect("Service Family", options=OPTIONS["families"])
         
-        if st.session_state.f_family:
-            _valid_services = df_all[df_all["service_category"].isin(st.session_state.f_family)]["ecosystem_service"].unique().tolist()
+        if f_family:
+            _valid_services = df_all[df_all["service_category"].isin(f_family)]["ecosystem_service"].unique().tolist()
             _valid_services = sorted(_valid_services)
         else:
             _valid_services = OPTIONS["services"]
             
-        _current_f_service = st.session_state.f_service
-        _filtered_service = [s for s in _current_f_service if s in _valid_services]
-        
-        if _filtered_service != _current_f_service:
-            st.session_state.f_service = _filtered_service
-            
-        st.multiselect("Ecosystem Service", options=_valid_services, key="f_service")
+        f_service = st.multiselect("Ecosystem Service", options=_valid_services)
 
     with st.expander("📅 Time & Impact", expanded=True):
         _min_y, _max_y = int(OPTIONS["years"][0]), int(OPTIONS["years"][-1])
-        st.slider("Publication Year", min_value=_min_y, max_value=_max_y, key="f_year")
-        st.number_input("Minimum Citations", min_value=0, step=10, key="f_min_cit")
+        f_year = st.slider("Publication Year", min_value=_min_y, max_value=_max_y, value=(_min_y, _max_y))
+        f_min_cit = st.number_input("Minimum Citations", min_value=0, step=10)
 
     with st.expander("📚 Publication Details", expanded=False):
-        st.multiselect("Source Journal", options=OPTIONS["journals"], key="f_journal")
-        if "Other Journals" in st.session_state.f_journal:
+        f_journal = st.multiselect("Source Journal", options=OPTIONS["journals"])
+        if "Other Journals" in f_journal:
             st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
-        st.multiselect("Open Access Status", options=OPTIONS["oa"], key="f_oa")
+        f_oa = st.multiselect("Open Access Status", options=OPTIONS["oa"])
 
 # ══════════════════════════
 # APPLY FILTERS
 # ══════════════════════════
 df = df_all
-df = df[(df["pub_year"] >= st.session_state.f_year[0]) & (df["pub_year"] <= st.session_state.f_year[1])]
-if st.session_state.f_category: df = df[df["category"].isin(st.session_state.f_category)]
-if st.session_state.f_family:   df = df[df["service_category"].isin(st.session_state.f_family)]
-if st.session_state.f_service:  df = df[df["ecosystem_service"].isin(st.session_state.f_service)]
-if st.session_state.f_journal:  df = df[df["journal_bucket"].isin(st.session_state.f_journal)]
-if st.session_state.f_oa:       df = df[df["open_access"].isin(st.session_state.f_oa)]
-if st.session_state.f_min_cit > 0: df = df[df["times_cited"] >= st.session_state.f_min_cit]
+df = df[(df["pub_year"] >= f_year[0]) & (df["pub_year"] <= f_year[1])]
+if f_category: df = df[df["category"].isin(f_category)]
+if f_family:   df = df[df["service_category"].isin(f_family)]
+if f_service:  df = df[df["ecosystem_service"].isin(f_service)]
+if f_journal:  df = df[df["journal_bucket"].isin(f_journal)]
+if f_oa:       df = df[df["open_access"].isin(f_oa)]
+if f_min_cit > 0: df = df[df["times_cited"] >= f_min_cit]
 
 if f_search:
     q = f_search.lower()
@@ -640,32 +589,6 @@ with _export_col:
         file_name=f"meco_filtered_export.csv",
         mime="text/csv",
     )
-
-with _share_col:
-    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
-
-    _share_params = {}
-    if st.session_state.f_year[0] != OPTIONS["years"][0]: 
-        _share_params["year_min"] = st.session_state.f_year[0]
-    if st.session_state.f_year[-1] != OPTIONS["years"][-1]: 
-        _share_params["year_max"] = st.session_state.f_year[-1]
-    if st.session_state.f_category: 
-        _share_params["paradigm"] = ",".join(st.session_state.f_category)
-    if st.session_state.f_family: 
-        _share_params["family"] = ",".join(st.session_state.f_family)
-    if st.session_state.f_service: 
-        _share_params["service"] = ",".join(st.session_state.f_service)
-    if st.session_state.f_journal:                                     
-        _share_params["journal"] = ",".join(st.session_state.f_journal)
-    if st.session_state.f_min_cit > 0: 
-        _share_params["min_cited"] = st.session_state.f_min_cit
-
-    query_string = urllib.parse.urlencode(_share_params, doseq=True)
-    
-    base_url = "https://demo-v3.streamlit.app/explorer" 
-    full_share_url = f"{base_url}?{query_string}" if query_string else base_url
-    
-    st.text_input("share_url", value=full_share_url, label_visibility="collapsed")
 
 st.markdown(f"""
 <p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
