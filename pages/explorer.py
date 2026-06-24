@@ -8,8 +8,8 @@ from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode
-
+from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
+                       JsCode, ColumnsAutoSizeMode)
 # ════════════════════════════════════════════════════════════════
 # PAGE CONFIG 
 # ════════════════════════════════════════════════════════════════
@@ -248,6 +248,8 @@ with st.sidebar:
 
     with st.expander("📚 Publication Details", expanded=False):
         f_journal = st.multiselect("Source Journal", options=OPTIONS["journals"], default=_dflt_journal)
+        if "Other Journals" in f_journal:
+            st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
         f_oa = st.multiselect("Open Access Status", options=OPTIONS["oa"], default=[])
 
 # ════════════════════════════════════════════════════════════════
@@ -547,9 +549,6 @@ gb.configure_grid_options(
     enableBrowserTooltips=True,
     suppressSizeToFit=True  
 )
-
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, JsCode, ColumnsAutoSizeMode
-
 
 _custom_css = {
     ".ag-header-cell-text": {
