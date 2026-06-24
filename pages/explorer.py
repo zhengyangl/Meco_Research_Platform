@@ -675,35 +675,42 @@ with _export_col:
     )
 
 with _share_col:
-    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font: 600 .65rem/1.2 Inter, sans-serif; '
+        'letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; '
+        'text-transform: uppercase;">Share This View</div>',
+        unsafe_allow_html=True
+    )
     
-    current_params = st.query_params.to_dict()
-    query_string = urllib.parse.urlencode(current_params, doseq=True)
-    
-    if query_string:
-        share_text = f"?{query_string}"
-        # HTML button that copies to clipboard via JavaScript on click.
-        # No backend roundtrip — the share text is baked into the page.
-        st.markdown(f"""
-        <button onclick="
-            navigator.clipboard.writeText(window.location.origin + window.location.pathname + '{share_text}');
-            this.innerText = '✓ Copied!';
-            setTimeout(() => this.innerText = '🔗 Copy share URL', 1500);
-        " style="
-            background: #FFFFFF; border: 1px solid #CBD5E1;
-            color: #0F172A; border-radius: 4px;
-            font: 500 .8rem/1 'Inter', sans-serif;
-            padding: 0.5rem 1rem; cursor: pointer;
-            transition: all .15s;
-        " onmouseover="this.style.borderColor='#2563EB';this.style.color='#2563EB';"
-           onmouseout="this.style.borderColor='#CBD5E1';this.style.color='#0F172A';">
-            🔗 Copy share URL
-        </button>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(
-            '<div style="font:400 .75rem/1.5 Inter,sans-serif;color:#94A3B8;padding:.6rem 0;">'
-            'Apply filters first to generate a sharable URL.'
-            '</div>',
-            unsafe_allow_html=True
-        )
+    st.markdown("""
+    <div>
+      <textarea id="meco-share-url" readonly aria-hidden="true"
+                style="position:absolute; left:-9999px; opacity:0;
+                       pointer-events:none;"></textarea>
+      <button id="meco-share-btn" onclick="
+          const t = document.getElementById('meco-share-url');
+          const url = window.location.origin + window.location.pathname + window.location.search;
+          t.value = url;
+          t.select();
+          t.setSelectionRange(0, 99999);
+          let ok = false;
+          try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+          this.innerText = ok ? '✓ Copied to clipboard' : '✗ Copy failed — select URL manually';
+          setTimeout(() => { this.innerText = '🔗 Copy share URL'; }, 1800);
+      " style="
+          width: 100%;
+          background: #FFFFFF;
+          border: 1px solid #CBD5E1;
+          color: #0F172A;
+          border-radius: 4px;
+          font: 500 .8rem/1 'Inter', sans-serif;
+          padding: .55rem 1rem;
+          cursor: pointer;
+          transition: all .15s;
+          text-align: left;
+      " onmouseover="this.style.borderColor='#2563EB';this.style.color='#2563EB';"
+         onmouseout="this.style.borderColor='#CBD5E1';this.style.color='#0F172A';">
+        🔗 Copy share URL
+      </button>
+    </div>
+    """, unsafe_allow_html=True)
