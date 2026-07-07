@@ -459,11 +459,11 @@ _tier_card(_t4, "Long tail", _n_tail,
            f"< {TIERS['median_threshold']:,} citations",  "#94A3B8")
 
 # ════════════════════════════════════════════════════════════════
-# VISUALIZATIONS — card-style tabs, one chart at a time
+# VISUALIZATIONS 
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.2rem;"></div>', unsafe_allow_html=True)
 
-# Custom CSS for tabs — make them look like card navigation pills
+# Custom CSS for tabs
 st.markdown("""
 <style>
 /* Tab container */
@@ -542,7 +542,7 @@ if len(df) > 0:
             "🧬  Technology Ecosystem"
         ])
 
-        # ── Tab 1: Choropleth ────────────────────────────────────────
+        # ── Choropleth ────────────────────────────────────────
     with tab_map:
         st.markdown("""
         <div class="chart-card">
@@ -559,11 +559,13 @@ if len(df) > 0:
             "n":       _country_counts.values,
             "label":   _country_counts.index,
         })
+        _country_df["log_n"] = np.log1p(_country_df["n"])
 
         fig_map = go.Figure(go.Choropleth(
             locations       = _country_df["country"],
             locationmode    = "country names",
-            z               = _country_df["n"],
+            z               = _country_df["log_n"],
+            customdata      = _country_df["n"],
             text            = _country_df["label"],
             colorscale      = [
                 [0.00, "#F8FAF5"],
@@ -573,18 +575,8 @@ if len(df) > 0:
                 [1.00, "#2D4A2D"],
             ],
             autocolorscale  = False,
-            showscale       = True,
-            colorbar        = dict(
-                title       = dict(text="Papers", font=dict(size=10, color="#64748B",
-                                                            family="Inter, sans-serif")),
-                thickness   = 10,
-                len         = 0.55,
-                tickfont    = dict(size=9, color="#64748B",
-                                   family="JetBrains Mono, monospace"),
-                bgcolor     = "rgba(0,0,0,0)",
-                borderwidth = 0,
-            ),
-            hovertemplate   = "<b>%{text}</b><br>%{z:,} papers<extra></extra>",
+            showscale       = False,
+            hovertemplate   = "<b>%{text}</b><br>%{customdata:,} papers<extra></extra>",
             marker_line_color = "#E2E8F0",
             marker_line_width = 0.4,
         ))
@@ -617,29 +609,32 @@ if len(df) > 0:
                         config={"displayModeBar": False})
 
         # Quick stats under the map
-        _top3 = _country_counts.head(3)
+        _top5 = _country_counts.head(5)
         _n_countries = _country_counts.shape[0]
+        _top5_pct = round(_top5.sum() / _country_counts.sum() * 100)
+        _ranking = " · ".join(
+            f"{c} ({n:,})" for c, n in zip(_top5.index, _top5.values)
+        )
         st.markdown(
             f'<div style="font:400 .72rem/1.5 Inter,sans-serif;color:#94A3B8;'
             f'padding:0.4rem 0 0;">'
-            f'{_n_countries} countries · Top 3: '
-            f'{_top3.index[0]} ({_top3.values[0]:,}), '
-            f'{_top3.index[1]} ({_top3.values[1]:,}), '
-            f'{_top3.index[2]} ({_top3.values[2]:,})'
+            f'{_n_countries} countries · Top 5 contribute {_top5_pct}% of papers<br>'
+            f'{_ranking}'
             f'</div>',
             unsafe_allow_html=True
         )
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Tab 2: Ecosystem Service Gap Analysis ────────────────────
+    # ── Ecosystem Service Gap Analysis ────────────────────
     with tab_trend:
         st.markdown("""
         <div class="chart-card">
             <div class="chart-card-title">Where Are the Gaps?</div>
             <div class="chart-card-sub">
                 All 22 ecosystem services ranked by research volume in your
-                current selection. The red line marks 500 papers — below it
-                are the under-researched services that the narrative highlights.
+                current selection. The red line marks 500 papers (~5%% of the
+                top service) — the threshold used in the narrative page to
+                flag under-researched services.
             </div>
         """, unsafe_allow_html=True)
 
@@ -727,9 +722,19 @@ if len(df) > 0:
             f'</div>',
             unsafe_allow_html=True
         )
+
+        if _gap_df["n"].max() < 500 and len(df) < len(df_all):
+            st.markdown(
+                '<div style="font:400 .68rem/1.4 Inter,sans-serif;color:#D97706;'
+                'padding:0.3rem 0 0;">'
+                '⚠ Your current filter returns fewer than 500 papers per service. '
+                'The threshold is based on the full corpus for cross-filter comparison.'
+                '</div>',
+                unsafe_allow_html=True
+            )
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Tab 3: Technology Treemap ────────────────────────────────
+    # ── Technology Treemap ────────────────────────────────
     with tab_tech:
         st.markdown("""
         <div class="chart-card">
@@ -775,12 +780,12 @@ if len(df) > 0:
                 marker = dict(
                     colors     = _cluster_counts["median_cited"],
                     colorscale = [
-                        [0.00, "#FAF5EF"],
-                        [0.25, "#DBC8AD"],
-                        [0.55, "#A88B6D"],
-                        [1.00, "#5C4033"],
+                        [0.00, "#F0FAF0"],
+                        [0.25, "#A3C4A3"],
+                        [0.55, "#5B8A5B"],
+                        [1.00, "#2D4A2D"],
                     ],
-                    line = dict(width=2, color="#FAF5EF"),
+                    line = dict(width=2, color="#F0FAF0"),
                     colorbar = dict(
                         title = dict(
                             text = "Median<br>citations",
@@ -875,7 +880,7 @@ _grid_cols = [
     "title", "authors", "pub_year", "source_title", "times_cited",
     "open_access", "ecosystem_service", "service_category", "category",
     "technology", "doi",
-    # NLP-derived columns — hidden by default, user can unhide via column menu
+    # NLP-derived columns
     "country_first", "institution_top", "technology_cluster",
 ]
 
@@ -899,17 +904,18 @@ gb.configure_column("authors", header_name="Authors", width=180, minWidth=180, t
 gb.configure_column("pub_year", header_name="Year", width=80, minWidth=80, type=["numericColumn"])
 gb.configure_column("source_title", header_name="Journal", width=180, minWidth=180, tooltipField="source_title")
 gb.configure_column("times_cited", header_name="Citations", width=150, minWidth=150, type=["numericColumn"], sort="desc")
-gb.configure_column("open_access", header_name="Access", width=110, minWidth=110)
+gb.configure_column("open_access", header_name="Access", width=110, minWidth=110, hide=True)
 
 gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=200, minWidth=200, tooltipField="ecosystem_service")
-gb.configure_column("service_category", header_name="Family", width=120, minWidth=120)
+gb.configure_column("service_category", header_name="Family", width=120, minWidth=120, hide=True)
 gb.configure_column("category", header_name="Paradigm", width=110, minWidth=110, cellStyle=_category_style)
 gb.configure_column("technology", header_name="Technology", width=160, minWidth=160, tooltipField="technology")
 
 gb.configure_column("doi", header_name="DOI", width=220, minWidth=220, cellRenderer=_doi_renderer)
-gb.configure_column("country_first", header_name="Country", width=130, hide=True)
-gb.configure_column("institution_top", header_name="Institution", width=250, hide=True, tooltipField="institution_top")
-gb.configure_column("technology_cluster", header_name="Tech Cluster", width=220, hide=True, tooltipField="technology_cluster")
+
+gb.configure_column("country_first", header_name="Country", width=120)
+gb.configure_column("institution_top", header_name="Institution", width=200, tooltipField="institution_top")
+gb.configure_column("technology_cluster", header_name="Tech Cluster", width=180, tooltipField="technology_cluster")
 
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
 gb.configure_grid_options(
@@ -953,8 +959,6 @@ AgGrid(
 # ════════════════════════════════════════════════════════════════
 # METHODOLOGY PANEL 
 # ════════════════════════════════════════════════════════════════
-# Folded by default so it doesn't compete with the main UI, but always
-# one click away.
 st.markdown('<div style="margin-top:1.4rem;"></div>', unsafe_allow_html=True)
 with st.expander("📊 How were these papers classified? (Methodology & data lineage)"):
     st.markdown(f"""
@@ -1000,48 +1004,60 @@ Aggregate generated: {META.get("generated_at", "—")}*
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.0rem;"></div>', unsafe_allow_html=True)
 
-_export_col, _share_col = st.columns([1, 1])
+_export_col = st.container()
 
 with _export_col:
     st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Export Data</div>', unsafe_allow_html=True)
-    _csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label=f"⬇ Download Current {len(df):,} Records as CSV",
-        data=_csv,
-        file_name=f"meco_filtered_export.csv",
-        mime="text/csv",
+    
+    # Let users choose which columns to include in the export.
+    _ALL_EXPORT_COLS = {
+        "wos_id":               "WoS ID",
+        "doi":                  "DOI",
+        "title":                "Title",
+        "authors":              "Authors",
+        "pub_year":             "Year",
+        "source_title":         "Journal",
+        "times_cited":          "Citations",
+        "open_access":          "Open Access",
+        "ecosystem_service":    "Ecosystem Service",
+        "service_category":     "Service Family",
+        "category":             "Paradigm (R/E/S)",
+        "technology":           "Technology",
+        "technology_cluster":   "Tech Cluster",
+        "country_first":        "Country",
+        "institution_top":      "Institution",
+        "countries_all":        "All Countries",
+        "institutions_all":     "All Institutions",
+        "funding_agencies":     "Funding Agencies",
+        "wos_categories_parsed":"WoS Categories",
+        "keywords":             "Keywords",
+        "addresses":            "Addresses",
+        "funding_orgs":         "Funding Orgs (raw)",
+    }
+    # Default selection: the most commonly needed columns
+    _DEFAULT_EXPORT = [
+        "wos_id", "doi", "title", "authors", "pub_year", "source_title",
+        "times_cited", "ecosystem_service", "category", "technology",
+        "technology_cluster", "country_first", "institution_top",
+    ]
+    
+    _selected_cols = st.multiselect(
+        "Columns to export",
+        options=list(_ALL_EXPORT_COLS.keys()),
+        default=_DEFAULT_EXPORT,
+        format_func=lambda x: _ALL_EXPORT_COLS[x],
+        label_visibility="collapsed",
     )
-
-with _share_col:
-    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Share This View</div>', unsafe_allow_html=True)
-
-    _share_params = {}
-    if st.session_state.f_year[0] != OPTIONS["years"][0]: 
-        _share_params["year_min"] = st.session_state.f_year[0]
-    if st.session_state.f_year[-1] != OPTIONS["years"][-1]: 
-        _share_params["year_max"] = st.session_state.f_year[-1]
-    if st.session_state.f_category: 
-        _share_params["paradigm"] = ",".join(st.session_state.f_category)
-    if st.session_state.f_family: 
-        _share_params["family"] = ",".join(st.session_state.f_family)
-    if st.session_state.f_service: 
-        _share_params["service"] = ",".join(st.session_state.f_service)
-    if st.session_state.f_journal:                                     
-        _share_params["journal"] = ",".join(st.session_state.f_journal)
-    if st.session_state.f_min_cit > 0: 
-        _share_params["min_cited"] = st.session_state.f_min_cit
-
-    query_string = urllib.parse.urlencode(_share_params, doseq=True)
     
-    base_url = "https://demo-v3.streamlit.app/explorer" 
-    full_share_url = f"{base_url}?{query_string}" if query_string else base_url
-    
-    st.text_input("share_url", value=full_share_url, label_visibility="collapsed")
-
-st.markdown(f"""
-<p style="font:400 .75rem/1.7 'Inter',sans-serif;color:#94A3B8;margin-top:1.4rem;">
-    Data as of {META.get("dataset_version", "—")} · Derived from 31,559 Decision='Y' non-review papers · 
-    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#64748B;text-decoration:underline;">
-    View base methodology →</a>
-</p>
-""", unsafe_allow_html=True)
+    if _selected_cols:
+        # Only include columns that actually exist in the dataframe
+        _valid_cols = [c for c in _selected_cols if c in df.columns]
+        _csv = df[_valid_cols].to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label=f"⬇ Download {len(df):,} records · {len(_valid_cols)} fields",
+            data=_csv,
+            file_name=f"meco_export_{len(df)}rows.csv",
+            mime="text/csv",
+        )
+    else:
+        st.caption("Select at least one column to enable download.")
