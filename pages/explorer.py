@@ -12,6 +12,7 @@ import streamlit as st
 from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
                        JsCode, ColumnsAutoSizeMode)
 import urllib.parse
+
 # ════════════════════════════════════════════════════════════════
 # PAGE CONFIG 
 # ════════════════════════════════════════════════════════════════
@@ -157,13 +158,28 @@ def load_data() -> tuple:
     )
     
     # 2. Pre-compute dropdown options to save CPU cycles on reruns
+	# Pre-compute top 100 institutions by paper count
+    _inst_counts = df["institution_top"].value_counts()
+    _top_institutions = _inst_counts.head(100).index.tolist()
+
+    # Explode pipe-separated funding_agencies into individual agency names
+    _funding_flat = (
+        df["funding_agencies"].dropna()
+        .str.split(r" \| ", regex=True).explode().str.strip()
+    )
+    _funding_list = sorted(_funding_flat[_funding_flat != ""].unique().tolist())
+
     options = {
-        "years": sorted(df["pub_year"].dropna().unique().tolist()),
-        "categories": ["Replace", "Enhance", "Support"],
-        "families": sorted(df["service_category"].dropna().unique().tolist()),
-        "services": sorted(df["ecosystem_service"].dropna().unique().tolist()),
-        "oa": sorted(df["open_access"].dropna().unique().tolist()),
-        "journals": major_journals + ["Other Journals"] 
+        "years":        sorted(df["pub_year"].dropna().unique().tolist()),
+        "categories":   ["Replace", "Enhance", "Support"],
+        "families":     sorted(df["service_category"].dropna().unique().tolist()),
+        "services":     sorted(df["ecosystem_service"].dropna().unique().tolist()),
+        "oa":           sorted(df["open_access"].dropna().unique().tolist()),
+        "journals":     major_journals + ["Other Journals"],
+        "countries":    sorted(df["country_first"].dropna().unique().tolist()),
+        "tech_clusters": sorted(df["technology_cluster"].dropna().unique().tolist()),
+        "top_institutions": _top_institutions,
+        "funding_list": _funding_list,
     }
     # 3. Load Meta
     with open(_DATA_DIR / "corpus_meta.json", encoding="utf-8") as f:
@@ -217,7 +233,10 @@ if "state_initialized" not in st.session_state:
     st.session_state.f_family   = _read_qp_list("family",   set(OPTIONS["families"]))
     st.session_state.f_service  = _read_qp_list("service",  set(OPTIONS["services"]))
     st.session_state.f_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
-    st.session_state.f_oa       = [] 
+    st.session_state.f_oa            = []
+    st.session_state.f_country       = []
+    st.session_state.f_tech_cluster  = []
+    st.session_state.f_funding       = []
     
     _dflt_year_min = int(_qp.get("year_min", OPTIONS["years"][0]))
     _dflt_year_max = int(_qp.get("year_max", OPTIONS["years"][-1]))
@@ -277,6 +296,27 @@ with st.sidebar:
             st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
         st.multiselect("Open Access Status", options=OPTIONS["oa"], key="f_oa")
 
+    with st.expander("🌍 Geography & Institutions", expanded=False):
+        st.multiselect("Country (first author)",
+                       options=OPTIONS["countries"], key="f_country")
+        f_institution_search = st.text_input(
+            "Institution search",
+            placeholder="e.g. Harvard, MIT, Tsinghua...",
+            help="Searches first-author institution. Shows top 100 by paper count; "
+                 "type to find others."
+        )
+
+    with st.expander("🧬 Technology & Funding", expanded=False):
+        st.multiselect("Technology Cluster",
+                       options=OPTIONS["tech_clusters"], key="f_tech_cluster",
+                       help="25 semantic clusters derived from GPT-extracted technology labels.")
+        st.multiselect("Funding Agency",
+                       options=OPTIONS["funding_list"], key="f_funding",
+                       help="Matched against a whitelist of ~60 global funders. "
+                            "73.9% of funded papers are covered.")
+        st.caption("Covers 60% of papers (73.9% of those with funding data). " 
+        				"Papers with no funding info or niche local grants are not included.")
+
 
 # ══════════════════════════
 # APPLY FILTERS
@@ -299,6 +339,28 @@ if f_search:
         df["technology"].fillna("").str.lower().str.contains(q, na=False)
     )
     df = df[mask]
+
+# New NLP-derived filters
+if st.session_state.f_country:
+    df = df[df["country_first"].isin(st.session_state.f_country)]
+
+if f_institution_search:
+    _q_inst = f_institution_search.lower()
+    df = df[df["institution_top"].fillna("").str.lower().str.contains(_q_inst, na=False)]
+
+if st.session_state.f_tech_cluster:
+    df = df[df["technology_cluster"].isin(st.session_state.f_tech_cluster)]
+
+if st.session_state.f_funding:
+    # funding_agencies is pipe-separated (e.g. "NSF | NIH").
+    # Check if any selected agency appears as an exact element in the list.
+    _selected = set(st.session_state.f_funding)
+    _funding_mask = df["funding_agencies"].fillna("").apply(
+        lambda x: bool(_selected.intersection(
+            {s.strip() for s in x.split("|")}
+        ))
+    )
+    df = df[_funding_mask]
 
 # ═══════════════════════════════════════
 # MAIN AREA: HEADER + HEALTH BAR
@@ -509,6 +571,8 @@ _grid_cols = [
     "title", "authors", "pub_year", "source_title", "times_cited",
     "open_access", "ecosystem_service", "service_category", "category",
     "technology", "doi",
+    # NLP-derived columns — hidden by default, user can unhide via column menu
+    "country_first", "institution_top", "technology_cluster",
 ]
 
 if len(df) == 0:
@@ -539,6 +603,9 @@ gb.configure_column("category", header_name="Paradigm", width=110, minWidth=110,
 gb.configure_column("technology", header_name="Technology", width=160, minWidth=160, tooltipField="technology")
 
 gb.configure_column("doi", header_name="DOI", width=220, minWidth=220, cellRenderer=_doi_renderer)
+gb.configure_column("country_first", header_name="Country", width=130, hide=True)
+gb.configure_column("institution_top", header_name="Institution", width=250, hide=True, tooltipField="institution_top")
+gb.configure_column("technology_cluster", header_name="Tech Cluster", width=220, hide=True, tooltipField="technology_cluster")
 
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
 gb.configure_grid_options(
