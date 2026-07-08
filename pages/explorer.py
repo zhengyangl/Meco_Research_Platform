@@ -807,8 +807,15 @@ if len(df) > 0:
             )
             
             fig_gap.add_annotation(
-                x=500, y=1.05, xref="x", yref="paper", text="Gap threshold: 500", showarrow=False,
-    			font=dict(size=12, color="#2563EB"),
+                x=500, 
+                y=0.1, 
+                xref="x", 
+                yref="paper", 
+                text="Gap threshold: 500", 
+                showarrow=False,
+                xanchor="left",
+                xshift=8,
+    			font=dict(size=12, color="rgba(37,99,235,0.8)"),
 			)
             
             
