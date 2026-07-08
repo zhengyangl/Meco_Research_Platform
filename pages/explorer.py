@@ -233,8 +233,10 @@ if "state_initialized" not in st.session_state:
     st.session_state.f_family   = _read_qp_list("family",   set(OPTIONS["families"]))
     st.session_state.f_service  = _read_qp_list("service",  set(OPTIONS["services"]))
     st.session_state.f_journal  = _read_qp_list("journal",  set(OPTIONS["journals"]))
+    
     st.session_state.f_oa            = []
     st.session_state.f_country       = []
+    st.session_state.f_institution   = []
     st.session_state.f_tech_cluster  = []
     st.session_state.f_funding       = []
     
@@ -299,12 +301,17 @@ with st.sidebar:
     with st.expander("🌍 Geography & Institutions", expanded=False):
         st.multiselect("Country (first author)",
                        options=OPTIONS["countries"], key="f_country")
-        f_institution_search = st.text_input(
-            "Institution search",
-            placeholder="e.g. Harvard, MIT, Tsinghua...",
-            help="Searches first-author institution. Shows top 100 by paper count; "
-                 "type to find others."
+        st.multiselect(
+            "Institution (first author)",
+            options=OPTIONS["top_institutions"],
+            key="f_institution",
+            help="Top 100 institutions by paper count. Type to search.",
+            placeholder="e.g. Harvard, MIT, Tsinghua..."
         )
+        if not st.session_state.f_institution:
+            st.caption(
+                "Top 5: " + " · ".join(OPTIONS["top_institutions"][:5])
+            )
 
     with st.expander("🧬 Technology & Funding", expanded=False):
         st.multiselect("Technology Cluster",
@@ -344,9 +351,8 @@ if f_search:
 if st.session_state.f_country:
     df = df[df["country_first"].isin(st.session_state.f_country)]
 
-if f_institution_search:
-    _q_inst = f_institution_search.lower()
-    df = df[df["institution_top"].fillna("").str.lower().str.contains(_q_inst, na=False)]
+if st.session_state.f_institution:
+    df = df[df["institution_top"].isin(st.session_state.f_institution)]
 
 if st.session_state.f_tech_cluster:
     df = df[df["technology_cluster"].isin(st.session_state.f_tech_cluster)]
@@ -374,20 +380,31 @@ st.markdown("""
 st.markdown(f'<h1 class="exp-title">{len(df_all):,} Bio-inspired Papers.</h1>',
             unsafe_allow_html=True)
 
-# Health bar — single line of immutable metadata about the corpus itself.
-# Lives directly under the title so users instantly see "what version of the
-# data am I looking at" without having to dig into a methodology panel.
+# One-line corpus summary — dynamic, based on actual data
+_n_countries_all = df_all["country_first"].dropna().nunique()
+st.markdown(
+    f'<p style="font:400 1.0rem/1.5 \'Inter\',sans-serif; color:#475569; '
+    f'margin: 0.1rem 0 1.0rem; max-width:720px;">'
+    f'A searchable corpus of bio-inspired innovation spanning '
+    f'<b style="color:#0F172A;">{_n_countries_all}</b> countries, '
+    f'<b style="color:#0F172A;">22</b> ecosystem services, and '
+    f'<b style="color:#0F172A;">25</b> technology clusters — '
+    f'derived from Jacobs et al. (2025).'
+    f'</p>',
+    unsafe_allow_html=True
+)
+
+# Health bar
 st.markdown(
     f"""<div style="
         font: 500 .72rem/1.4 'JetBrains Mono', monospace;
         color: #64748B; margin: 0.2rem 0 1.2rem;
         padding-bottom: 0.7rem; border-bottom: 1px solid #E2E8F0;
     ">
-      <b style="color:#0F172A;">{len(df_all):,}</b> papers
-      &nbsp;·&nbsp; data as of {META.get("dataset_version", "—")}
-      &nbsp;·&nbsp; {META.get("n_services", 22)} services
+      data as of {META.get("dataset_version", "—")}
+      &nbsp;·&nbsp; classifier: GPT-4.1
       &nbsp;·&nbsp; open access: {_OA_PCT}%
-      &nbsp;·&nbsp; median citations: {_MEDIAN_CITED}
+      &nbsp;·&nbsp; corpus median citations: {_MEDIAN_CITED}
     </div>""",
     unsafe_allow_html=True
 )
@@ -417,26 +434,50 @@ else:
 st.markdown('<div style="margin-top:1.0rem;"></div>', unsafe_allow_html=True)
 
 _t1, _t2, _t3, _t4 = st.columns(4)
-def _tier_card(col, label, count, threshold_text, accent):
+def _tier_card(col, label, count, description, threshold_text, accent):
     col.markdown(f"""
     <div style="
-        background: #FFFFFF; border: 1px solid #E2E8F0;
-        border-left: 3px solid {accent};
-        border-radius: 6px; padding: .85rem 1rem;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        background:#FFFFFF;
+        border:1px solid #E2E8F0;
+        border-left:3px solid {accent};
+        border-radius:6px;
+        padding:.9rem 1rem;
+        box-shadow:0 1px 2px rgba(0,0,0,0.03);
     ">
-      <div style="font: 500 .65rem/1 'Inter',sans-serif;
-                  color: #64748B; text-transform: uppercase;
-                  letter-spacing: .08em; margin-bottom: .35rem;">
+
+      <div style="
+          font:500 .65rem/1 'Inter',sans-serif;
+          color:#64748B;
+          text-transform:uppercase;
+          letter-spacing:.08em;
+          margin-bottom:.45rem;
+      ">
         {label}
       </div>
-      <div style="font: 700 1.5rem/1 'JetBrains Mono',monospace;
-                  color: #0F172A; margin-bottom: .25rem;">
+
+      <div style="
+          font:700 1.55rem/1 'JetBrains Mono',monospace;
+          color:#0F172A;
+          margin-bottom:.45rem;
+      ">
         {count:,}
       </div>
-      <div style="font: 400 .7rem/1.3 'Inter',sans-serif; color: #94A3B8;">
+
+      <div style="
+          font:500 .73rem/1.3 'Inter',sans-serif;
+          color:#334155;
+          margin-bottom:.25rem;
+      ">
+        {description}
+      </div>
+
+      <div style="
+          font:400 .68rem/1.3 'Inter',sans-serif;
+          color:#94A3B8;
+      ">
         {threshold_text}
       </div>
+
     </div>
     """, unsafe_allow_html=True)
 
@@ -449,14 +490,41 @@ if len(df) > 0:
 else:
     _n_top1 = _n_top10 = _n_median = _n_tail = 0
 
-_tier_card(_t1, "Top 1%",   _n_top1,
-           f"≥ {TIERS['top_1_threshold']:,} citations",   "#DC2626")
-_tier_card(_t2, "Top 10%",  _n_top10,
-           f"≥ {TIERS['top_10_threshold']:,} citations",  "#F59E0B")
-_tier_card(_t3, "Median",   _n_median,
-           f"{TIERS['median_threshold']:,}–{TIERS['top_10_threshold']:,} citations", "#2563EB")
-_tier_card(_t4, "Long tail", _n_tail,
-           f"< {TIERS['median_threshold']:,} citations",  "#94A3B8")
+_tier_card(
+    _t1,
+    "Top 1%",
+    _n_top1,
+    "Exceptional impact",
+    f"≥ {TIERS['top_1_threshold']:,} citations",
+    "#DC2626",
+)
+
+_tier_card(
+    _t2,
+    "Top 10%",
+    _n_top10,
+    "Highly cited",
+    f"≥ {TIERS['top_10_threshold']:,} citations",
+    "#F59E0B",
+)
+
+_tier_card(
+    _t3,
+    "Core Literature",
+    _n_median,
+    "Main body of the field",
+    f"{TIERS['median_threshold']:,}–{TIERS['top_10_threshold']-1:,} citations",
+    "#2563EB",
+)
+
+_tier_card(
+    _t4,
+    "Long Tail",
+    _n_tail,
+    "Emerging / niche research",
+    f"< {TIERS['median_threshold']:,} citations",
+    "#94A3B8",
+)
 
 # ════════════════════════════════════════════════════════════════
 # VISUALIZATIONS 
@@ -537,307 +605,350 @@ _PLOTLY_COUNTRY_MAP = {
 if len(df) > 0:
     with st.expander("📊 Visualizations — Geographic · Trends · Technology", expanded=False):
         tab_map, tab_trend, tab_tech = st.tabs([
-            "🌍  Global Landscape",
-            "🔍  Where Are the Gaps?",
-            "🧬  Technology Ecosystem"
+            "🌍 Global Landscape",
+            "🔍 Where Are the Gaps?",
+            "🧬 Technology Ecosystem"
         ])
 
         # ── Choropleth ────────────────────────────────────────
-    with tab_map:
-        st.markdown("""
-        <div class="chart-card">
-            <div class="chart-card-title">Global Innovation Landscape</div>
-            <div class="chart-card-sub">
-                Where is bio-inspired research happening? Color intensity shows
-                first-author paper count by country.
+        with tab_map:
+            st.markdown("""
+            <div class="chart-card" style="margin-bottom: 0.5rem; padding-bottom: 0.8rem;">
+                <div class="chart-card-title">Global Innovation Landscape</div>
+                <div class="chart-card-sub" style="margin-bottom: 0;">
+                    Where is bio-inspired research happening? Color intensity shows
+                    first-author paper count by country.
+                </div>
             </div>
-        """, unsafe_allow_html=True)
-
-        _country_counts = df["country_first"].dropna().value_counts()
-        _country_df = pd.DataFrame({
-            "country": [_PLOTLY_COUNTRY_MAP.get(c, c) for c in _country_counts.index],
-            "n":       _country_counts.values,
-            "label":   _country_counts.index,
-        })
-        _country_df["log_n"] = np.log1p(_country_df["n"])
-
-        fig_map = go.Figure(go.Choropleth(
-            locations       = _country_df["country"],
-            locationmode    = "country names",
-            z               = _country_df["log_n"],
-            customdata      = _country_df["n"],
-            text            = _country_df["label"],
-            colorscale      = [
-                [0.00, "#F8FAF5"],
-                [0.12, "#E2EDDA"],
-                [0.30, "#A3C4A3"],
-                [0.60, "#5B8A5B"],
-                [1.00, "#2D4A2D"],
-            ],
-            autocolorscale  = False,
-            showscale       = False,
-            hovertemplate   = "<b>%{text}</b><br>%{customdata:,} papers<extra></extra>",
-            marker_line_color = "#E2E8F0",
-            marker_line_width = 0.4,
-        ))
-        fig_map.update_layout(
-            paper_bgcolor = "rgba(0,0,0,0)",
-            height        = 420,
-            margin        = dict(l=0, r=0, t=0, b=0),
-            geo = dict(
-                showframe       = False,
-                showcoastlines  = True,
-                coastlinecolor  = "#CBD5E1",
-                showland        = True,
-                landcolor       = "#FAFAF7",
-                showocean       = True,
-                oceancolor      = "#FAFCFA",
-                showlakes       = False,
-                showcountries   = True,
-                countrycolor    = "#E2E8F0",
-                bgcolor         = "rgba(0,0,0,0)",
-                projection_type = "natural earth",
-            ),
-            hoverlabel = dict(
-                bgcolor    = "#FFFFFF",
-                bordercolor= "#E2E8F0",
-                font       = dict(size=11, color="#0F172A",
-                                  family="Inter, sans-serif"),
-            ),
-        )
-        st.plotly_chart(fig_map, use_container_width=True,
-                        config={"displayModeBar": False})
-
-        # Quick stats under the map
-        _top5 = _country_counts.head(5)
-        _n_countries = _country_counts.shape[0]
-        _top5_pct = round(_top5.sum() / _country_counts.sum() * 100)
-        _ranking = " · ".join(
-            f"{c} ({n:,})" for c, n in zip(_top5.index, _top5.values)
-        )
-        st.markdown(
-            f'<div style="font:400 .72rem/1.5 Inter,sans-serif;color:#94A3B8;'
-            f'padding:0.4rem 0 0;">'
-            f'{_n_countries} countries · Top 5 contribute {_top5_pct}% of papers<br>'
-            f'{_ranking}'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Ecosystem Service Gap Analysis ────────────────────
-    with tab_trend:
-        st.markdown("""
-        <div class="chart-card">
-            <div class="chart-card-title">Where Are the Gaps?</div>
-            <div class="chart-card-sub">
-                All 22 ecosystem services ranked by research volume in your
-                current selection. The red line marks 500 papers (~5%% of the
-                top service) — the threshold used in the narrative page to
-                flag under-researched services.
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Count papers per ecosystem service in the filtered data.
-        # Include all 22 services (even zeros) so the gaps are visible.
-        _ALL_SERVICES = [
-            "Biochemicals", "Fibre/Hide/Wood", "Fuel", "Potable Water",
-            "Food", "Biodiversity", "Disease Regulation", "Waste Treatment",
-            "Climate Regulation", "Atmospheric Regulation", "Water Regulation",
-            "Pollination", "Coastline Regulation", "Primary Production",
-            "Soil Formation", "Nutrient Cycling", "Inspiration/Education",
-            "Aesthetic", "Recreation", "Cultural Heritage", "Spiritual",
-            "Cultural Identity",
-        ]
-        _svc_counts = df["ecosystem_service"].value_counts()
-        _gap_df = pd.DataFrame({
-            "service": _ALL_SERVICES,
-            "n":       [int(_svc_counts.get(s, 0)) for s in _ALL_SERVICES],
-        }).sort_values("n", ascending=True)
-
-        # Color: green if >= 500, muted amber if < 500 (research gap)
-        _gap_df["color"] = _gap_df["n"].apply(
-            lambda x: "#5B8A5B" if x >= 500 else "#C4956A"
-        )
-
-        fig_gap = go.Figure()
-
-        # Bars
-        fig_gap.add_trace(go.Bar(
-            y            = _gap_df["service"],
-            x            = _gap_df["n"],
-            orientation  = "h",
-            marker_color = _gap_df["color"],
-            hovertemplate= "<b>%{y}</b><br>%{x:,} papers<extra></extra>",
-        ))
-
-        # Threshold line at 500
-        fig_gap.add_vline(
-            x=500, line_dash="dot", line_color="#DC2626", line_width=1.2,
-            annotation_text="gap threshold (500)",
-            annotation_position="top right",
-            annotation_font=dict(size=9, color="#DC2626",
-                                 family="Inter, sans-serif"),
-        )
-
-        fig_gap.update_layout(
-            paper_bgcolor = "rgba(0,0,0,0)",
-            plot_bgcolor  = "#FFFFFF",
-            height        = 520,
-            margin        = dict(l=10, r=20, t=10, b=10),
-            xaxis = dict(
-                tickfont   = dict(size=10, color="#94A3B8",
-                                  family="Inter, sans-serif"),
-                gridcolor  = "#F1F5F9",
-                linecolor  = "#E2E8F0",
-                tickformat = ",",
-            ),
-            yaxis = dict(
-                tickfont = dict(size=11, color="#334155",
-                                family="Inter, sans-serif"),
-                linecolor = "#E2E8F0",
-            ),
-            hoverlabel = dict(
-                bgcolor     = "#FFFFFF",
-                bordercolor = "#E2E8F0",
-                font        = dict(size=11, color="#0F172A",
-                                   family="Inter, sans-serif"),
-            ),
-            showlegend = False,
-            bargap     = 0.25,
-        )
-        st.plotly_chart(fig_gap, use_container_width=True,
-                        config={"displayModeBar": False})
-
-        # Quick stats
-        _n_above = (_gap_df["n"] >= 500).sum()
-        _n_zero  = (_gap_df["n"] == 0).sum()
-        _lowest  = _gap_df.iloc[0]
-        st.markdown(
-            f'<div style="font:400 .72rem/1.5 Inter,sans-serif;color:#94A3B8;'
-            f'padding:0.4rem 0 0;">'
-            f'{_n_above} of 22 services above the 500-paper threshold · '
-            f'{_n_zero} with zero papers · '
-            f'Smallest: {_lowest["service"]} ({int(_lowest["n"]):,})'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-        if _gap_df["n"].max() < 500 and len(df) < len(df_all):
-            st.markdown(
-                '<div style="font:400 .68rem/1.4 Inter,sans-serif;color:#D97706;'
-                'padding:0.3rem 0 0;">'
-                '⚠ Your current filter returns fewer than 500 papers per service. '
-                'The threshold is based on the full corpus for cross-filter comparison.'
-                '</div>',
-                unsafe_allow_html=True
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ── Technology Treemap ────────────────────────────────
-    with tab_tech:
-        st.markdown("""
-        <div class="chart-card">
-            <div class="chart-card-title">Technology Ecosystem</div>
-            <div class="chart-card-sub">
-                What are researchers building? Size = publication volume,
-                color = citation impact (darker = more influential).
-            </div>
-        """, unsafe_allow_html=True)
-
-        _cluster_counts = (
-            df.groupby("technology_cluster")
-              .agg(n=("wos_id", "size"),
-                   median_cited=("times_cited", "median"))
-              .reset_index()
-              .rename(columns={"technology_cluster": "cluster"})
-        )
-        _cluster_counts["median_cited"] = (
-            _cluster_counts["median_cited"].fillna(0).astype(int)
-        )
-
-        if len(_cluster_counts) > 0:
-            _cluster_counts["short"] = _cluster_counts["cluster"].apply(
-                lambda x: x if len(x) <= 30 else x[:28] + "…"
-            )
-
-            fig_tree = go.Figure(go.Treemap(
-                labels       = _cluster_counts["short"],
-                values       = _cluster_counts["n"],
-                parents      = [""] * len(_cluster_counts),
-                customdata   = _cluster_counts[["cluster", "median_cited"]].values,
-                textinfo     = "label+value",
-                textfont     = dict(
-                    size   = 12,
-                    family = "Inter, sans-serif",
-                ),
-                texttemplate = "<b>%{label}</b><br>%{value:,}",
-                hovertemplate = (
-                    "<b>%{customdata[0]}</b><br>"
-                    "%{value:,} papers · median citations: %{customdata[1]}"
-                    "<extra></extra>"
-                ),
-                marker = dict(
-                    colors     = _cluster_counts["median_cited"],
-                    colorscale = [
-                        [0.00, "#F0FAF0"],
-                        [0.25, "#A3C4A3"],
-                        [0.55, "#5B8A5B"],
-                        [1.00, "#2D4A2D"],
-                    ],
-                    line = dict(width=2, color="#F0FAF0"),
-                    colorbar = dict(
-                        title = dict(
-                            text = "Median<br>citations",
-                            font = dict(size=10, color="#64748B",
-                                        family="Inter, sans-serif"),
+            """, unsafe_allow_html=True)
+            
+            _country_counts = df["country_first"].dropna().value_counts()
+            
+            if len(_country_counts) > 0:
+                _country_df = pd.DataFrame({
+                    "country": [_PLOTLY_COUNTRY_MAP.get(c, c) for c in _country_counts.index],
+                    "n": _country_counts.values,
+                    "label": _country_counts.index,
+                })
+                _country_df["log_n"] = np.log1p(_country_df["n"])
+                
+                col_map, col_stats = st.columns([7.5, 2.5], gap="large")
+                
+                with col_map:
+                    fig_map = go.Figure(go.Choropleth(
+                        locations = _country_df["country"],
+                        locationmode = "country names",
+                        z = _country_df["log_n"],
+                        customdata = _country_df["n"],
+                        text = _country_df["label"],
+                        colorscale = [
+                            [0.00, "#F8FAF5"],
+                            [0.12, "#E2EDDA"],
+                            [0.30, "#A3C4A3"],
+                            [0.60, "#5B8A5B"],
+                            [1.00, "#2D4A2D"],
+                        ],
+                        autocolorscale = False,
+                        showscale = False,
+                        hovertemplate = "<b>%{text}</b><br>%{customdata:,} papers<extra></extra>",
+                        marker_line_color = "#E2E8F0",
+                        marker_line_width = 0.4,
+                    ))
+                    
+                    fig_map.update_layout(
+                        paper_bgcolor = "rgba(0,0,0,0)",
+                        plot_bgcolor = "rgba(0,0,0,0)",
+                        height = 360,  
+                        margin = dict(l=0, r=0, t=10, b=0),
+                        geo = dict(
+                            showframe = False,
+                            showcoastlines = True,
+                            coastlinecolor = "#CBD5E1",
+                            showland = True,
+                            landcolor = "#FAFAF7",
+                            showocean = True,
+                            oceancolor = "#FAFCFA",
+                            showlakes = False,
+                            showcountries = True,
+                            countrycolor = "#E2E8F0",
+                            bgcolor = "rgba(0,0,0,0)",
+                            projection_type = "natural earth",
                         ),
-                        thickness  = 10,
-                        len        = 0.55,
-                        tickfont   = dict(size=9, color="#64748B",
-                                          family="JetBrains Mono, monospace"),
-                        bgcolor    = "rgba(0,0,0,0)",
-                        borderwidth= 0,
-                    ),
-                ),
-                tiling = dict(packing="squarify"),
-            ))
-            fig_tree.update_layout(
-                paper_bgcolor = "rgba(0,0,0,0)",
-                height        = 420,
-                margin        = dict(l=0, r=0, t=0, b=0),
-                hoverlabel    = dict(
-                    bgcolor    = "#FFFFFF",
-                    bordercolor= "#E2E8F0",
-                    font       = dict(size=11, color="#0F172A",
-                                      family="Inter, sans-serif"),
-                ),
-            )
-            st.plotly_chart(fig_tree, use_container_width=True,
-                            config={"displayModeBar": False})
+                        hoverlabel = dict(
+                            bgcolor = "#FFFFFF",
+                            bordercolor = "#E2E8F0",
+                            font = dict(size=11, color="#0F172A", family="Inter, sans-serif"),
+                        ),
+                    )
+                    st.plotly_chart(fig_map, use_container_width=True, config={"displayModeBar": False})
+                    
+                with col_stats:
+                    _top5 = _country_counts.head(5)
+                    _n_countries = _country_counts.shape[0]
+                    _total_counts = _country_counts.sum()
+                    _top5_pct = round(_top5.sum() / _total_counts * 100) if _total_counts > 0 else 0
+                    
+                    _rank_items = []
+                    for i, (c, n) in enumerate(zip(_top5.index, _top5.values)):
+                        display_name = c
+                        if display_name == "United States":
+                            display_name = "USA"
+                        elif display_name == "United Kingdom":
+                            display_name = "UK"
 
-            _top_impact = _cluster_counts.nlargest(3, "median_cited")
+                        _rank_items.append(
+                            f'<div style="display:flex; justify-content:space-between; align-items:center; '
+                            f'padding:.35rem 0; border-bottom:1px solid #E2E8F0;">'
+                            f'<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:0.8rem;">'
+                            f'<span style="color:#94A3B8; margin-right:4px;">{i+1}.</span>'
+                            f'<span style="color:#334155;">{display_name}</span>'
+                            f'</div>'
+                            f'<div style="color:#0F172A; font-weight:600; flex-shrink:0;">{n:,}</div>'
+                            f'</div>'
+                        )
+                    _rank_html = "".join(_rank_items)
+                    
+                    st.markdown(
+                        f'<div style="background:#FFFFFF; border-radius:8px; padding:1.2rem; margin-top:0rem; border:1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">'
+                        f'<div style="font:600 .68rem/1.4 Inter,sans-serif; letter-spacing:.05em; color:#475569; text-transform:uppercase; margin-bottom:.1rem;">'
+                        f'Top 5 Countries</div>'
+                        f'<div style="font:400 .65rem/1.4 Inter,sans-serif; color:#94A3B8; margin-bottom:1rem;">'
+                        f'Contribute {_top5_pct}% of total papers</div>'
+                        f'<div style="font:400 .8rem/1.8 \'JetBrains Mono\',monospace;">'
+                        f'{_rank_html}'
+                        f'</div>'
+                        f'<div style="font:400 .65rem/1.5 Inter,sans-serif; color:#94A3B8; margin-top:.8rem; text-align:center;">'
+                        f'{_n_countries} countries in total'
+                        f'</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.info("No geographic data available for the selected filters.")
+
+        # ── Ecosystem Service Gap Analysis ────────────────────
+        with tab_trend:
+            st.markdown("""
+            <div class="chart-card">
+                <div class="chart-card-title">Where Are the Gaps?</div>
+                <div class="chart-card-sub">
+                    All 22 ecosystem services ranked by research volume in your
+                    current selection. The red line marks 500 papers (~5% of the
+                    top service) — the threshold used in the narrative page to
+                    flag under-researched services.
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Count papers per ecosystem service in the filtered data.
+            # Include all 22 services (even zeros) so the gaps are visible.
+            _ALL_SERVICES = [
+                "Biochemicals", "Fibre/Hide/Wood", "Fuel", "Potable Water",
+                "Food", "Biodiversity", "Disease Regulation", "Waste Treatment",
+                "Climate Regulation", "Atmospheric Regulation", "Water Regulation",
+                "Pollination", "Coastline Regulation", "Primary Production",
+                "Soil Formation", "Nutrient Cycling", "Inspiration/Education",
+                "Aesthetic", "Recreation", "Cultural Heritage", "Spiritual",
+                "Cultural Identity",
+            ]
+            _svc_counts = df["ecosystem_service"].value_counts()
+            _gap_df = pd.DataFrame({
+                "service": _ALL_SERVICES,
+                "n": [int(_svc_counts.get(s, 0)) for s in _ALL_SERVICES],
+            }).sort_values("n", ascending=True)
+            
+            # Color: green if >= 500, muted amber if < 500 (research gap)
+            _gap_df["color"] = _gap_df["n"].apply(
+                lambda x: "#5B8A5B" if x >= 500 else "#C4956A"
+            )
+            
+            fig_gap = go.Figure()
+            
+            # Bars
+            fig_gap.add_trace(go.Bar(
+                y = _gap_df["service"],
+                x = _gap_df["n"],
+                orientation = "h",
+                marker_color = _gap_df["color"],
+                hovertemplate= "<b>%{y}</b><br>%{x:,} papers<extra></extra>",
+            ))
+            
+            # Threshold line at 500
+            fig_gap.add_vline(
+                x=500, line_dash="dot", line_color="#DC2626", line_width=1.2,
+                annotation_text="gap threshold (500)",
+                annotation_position="top right",
+                annotation_font=dict(size=9, color="#DC2626", family="Inter, sans-serif"),
+            )
+            
+            fig_gap.update_layout(
+                paper_bgcolor = "rgba(0,0,0,0)",
+                plot_bgcolor = "#FFFFFF",
+                height = 520,
+                margin = dict(l=10, r=20, t=10, b=10),
+                xaxis = dict(
+                    tickfont = dict(size=10, color="#94A3B8", family="Inter, sans-serif"),
+                    gridcolor = "#F1F5F9",
+                    linecolor = "#E2E8F0",
+                    tickformat = ",",
+                ),
+                yaxis = dict(
+                    tickfont = dict(size=11, color="#334155", family="Inter, sans-serif"),
+                    linecolor = "#E2E8F0",
+                ),
+                hoverlabel = dict(
+                    bgcolor = "#FFFFFF",
+                    bordercolor = "#E2E8F0",
+                    font = dict(size=11, color="#0F172A", family="Inter, sans-serif"),
+                ),
+                showlegend = False,
+                bargap = 0.25,
+            )
+            st.plotly_chart(fig_gap, use_container_width=True, config={"displayModeBar": False})
+            
+            # Quick stats
+            _n_above = (_gap_df["n"] >= 500).sum()
+            _n_zero = (_gap_df["n"] == 0).sum()
+            _lowest = _gap_df.iloc[0]
+            
             st.markdown(
-                '<div style="font:400 .72rem/1.5 Inter,sans-serif;color:#94A3B8;'
-                'padding:0.4rem 0 0;">'
-                'Highest impact: ' +
-                ' · '.join(
-                    f'{r["cluster"]} (med. {r["median_cited"]})'
-                    for _, r in _top_impact.iterrows()
-                ) +
-                '</div>',
+                f'<div style="border-top:1px solid #F1F5F9;margin-top:0.8rem;'
+                f'padding-top:0.8rem;font:400 .72rem/1.5 Inter,sans-serif;color:#64748B;">'
+                f'<b style="color:#0F172A;">{_n_above}</b> of 22 services above the '
+                f'500-paper threshold · '
+                f'<b style="color:#0F172A;">{_n_zero}</b> with zero papers · '
+                f'Smallest: <b style="color:#0F172A;">{_lowest["service"]}</b> '
+                f'({int(_lowest["n"]):,})'
+                f'</div>',
                 unsafe_allow_html=True
             )
-        else:
-            st.markdown(
-                '<div style="color:#94A3B8; font:300 .82rem/1.6 Inter,sans-serif;'
-                'padding-top:1rem;">No technology cluster data.</div>',
-                unsafe_allow_html=True
+            
+            if _gap_df["n"].max() < 500 and len(df) < len(df_all):
+                st.markdown(
+                    '<div style="font:400 .68rem/1.4 Inter,sans-serif;color:#D97706;'
+                    'padding:0.3rem 0 0;">'
+                    '⚠ Your current filter returns fewer than 500 papers per service. '
+                    'The threshold is based on the full corpus for cross-filter comparison.'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Technology Treemap ────────────────────────────────
+        with tab_tech:
+            st.markdown("""
+            <div class="chart-card">
+                <div class="chart-card-title">Technology Ecosystem</div>
+                <div class="chart-card-sub">
+                    What are researchers building? Size = publication volume,
+                    color = citation impact (darker = more influential).
+                </div>
+            """, unsafe_allow_html=True)
+            
+            _cluster_counts = (
+                df.groupby("technology_cluster")
+                  .agg(n=("wos_id", "size"),
+                       median_cited=("times_cited", "median"))
+                  .reset_index()
+                  .rename(columns={"technology_cluster": "cluster"})
             )
-        st.markdown('</div>', unsafe_allow_html=True)
+            _cluster_counts["median_cited"] = (
+                _cluster_counts["median_cited"].fillna(0).astype(int)
+            )
+            
+            if len(_cluster_counts) > 0:
+                _cluster_counts["short"] = _cluster_counts["cluster"].apply(
+                    lambda x: x if len(x) <= 30 else x[:28] + "…"
+                )
+                
+                fig_tree = go.Figure(go.Treemap(
+                    labels = _cluster_counts["short"],
+                    values = _cluster_counts["n"],
+                    parents = [""] * len(_cluster_counts),
+                    customdata = _cluster_counts[["cluster", "median_cited"]].values,
+                    textinfo = "label+value",
+                    textfont = dict(
+                        size = 12,
+                        family = "Inter, sans-serif",
+                    ),
+                    texttemplate = "<b>%{label}</b><br>%{value:,}",
+                    hovertemplate = (
+                        "<b>%{customdata[0]}</b><br>"
+                        "%{value:,} papers · median citations: %{customdata[1]}"
+                        "<extra></extra>"
+                    ),
+                    marker = dict(
+                        colors = _cluster_counts["median_cited"],
+                        colorscale = [
+                            [0.00, "#F0FAF0"],
+                            [0.25, "#A3C4A3"],
+                            [0.55, "#5B8A5B"],
+                            [1.00, "#2D4A2D"],
+                        ],
+                        line = dict(width=2, color="#F0FAF0"),
+                        colorbar = dict(
+                            title = dict(
+                                text = "Median<br>citations",
+                                font = dict(size=10, color="#64748B", family="Inter, sans-serif"),
+                            ),
+                            thickness = 10,
+                            len = 0.55,
+                            tickfont = dict(size=9, color="#64748B", family="JetBrains Mono, monospace"),
+                            bgcolor = "rgba(0,0,0,0)",
+                            borderwidth= 0,
+                        ),
+                    ),
+                    tiling = dict(packing="squarify"),
+                ))
+                
+                fig_tree.update_layout(
+                    paper_bgcolor = "rgba(0,0,0,0)",
+                    height = 420,
+                    margin = dict(l=0, r=0, t=0, b=0),
+                    hoverlabel = dict(
+                        bgcolor = "#FFFFFF",
+                        bordercolor= "#E2E8F0",
+                        font = dict(size=11, color="#0F172A", family="Inter, sans-serif"),
+                    ),
+                )
+                st.plotly_chart(fig_tree, use_container_width=True, config={"displayModeBar": False})
+                
+                _top_impact = _cluster_counts.nlargest(3, "median_cited")
+            
+                _impact_items = []
+                for _, r in _top_impact.iterrows():
+                    item = (
+                        f'<div style="display:flex; justify-content:space-between; align-items:center; '
+                        f'padding:.22rem 0; border-bottom:1px solid #F8FAFC;">'
+                        f'<span style="color:#334155; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:1rem;">'
+                        f'{r["cluster"]}</span>'
+                        f'<span style="color:#0F172A; font-weight:600; white-space:nowrap;">'
+                        f'med.&nbsp;{int(r["median_cited"])}</span></div>'
+                    )
+                    _impact_items.append(item)
+                _impact_html = "".join(_impact_items)
+                
+                st.markdown(
+                    f'<div style="border-top:1px solid #F1F5F9; margin-top:.85rem; padding-top:.85rem;">'
+                    f'<div style="font:600 .68rem/1.4 Inter,sans-serif; letter-spacing:.05em; color:#94A3B8; text-transform:uppercase; margin-bottom:.55rem;">'
+                    f'Highest Citation Impact</div>'
+                    f'<div style="font:400 .8rem/1.8 \'JetBrains Mono\',monospace; max-width:420px;">'
+                    f'{_impact_html}</div>'
+                    f'<div style="font:400 .68rem/1.5 Inter,sans-serif; color:#94A3B8; margin-top:.75rem;">'
+                    f'Treemap color encodes the median citation count within each technology cluster.</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    '<div style="color:#94A3B8; font:300 .82rem/1.6 Inter,sans-serif; padding-top:1rem;">'
+                    'No technology cluster data.</div>',
+                    unsafe_allow_html=True
+                )
+            st.markdown('</div>', unsafe_allow_html=True)
 
 else:
     st.info("No data matches the selected filters.")
+
 
 # ══════════════════════
 # MAIN TABLE 
@@ -913,9 +1024,9 @@ gb.configure_column("technology", header_name="Technology", width=160, minWidth=
 
 gb.configure_column("doi", header_name="DOI", width=220, minWidth=220, cellRenderer=_doi_renderer)
 
-gb.configure_column("country_first", header_name="Country", width=120)
-gb.configure_column("institution_top", header_name="Institution", width=200, tooltipField="institution_top")
-gb.configure_column("technology_cluster", header_name="Tech Cluster", width=180, tooltipField="technology_cluster")
+gb.configure_column("country_first", header_name="Country", width=120, minWidth=120, maxWidth=150)
+gb.configure_column("institution_top", header_name="Institution", width=220, minWidth=220, tooltipField="institution_top")
+gb.configure_column("technology_cluster", header_name="Tech Cluster", width=200, minWidth=200, tooltipField="technology_cluster")
 
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
 gb.configure_grid_options(
