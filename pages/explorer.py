@@ -287,18 +287,18 @@ with st.sidebar:
             
         st.multiselect("Ecosystem Service", options=_valid_services, key="f_service")
 
-    with st.expander("📅 Time & Impact", expanded=True):
+    with st.expander("Time & Impact", expanded=True):
         _min_y, _max_y = int(OPTIONS["years"][0]), int(OPTIONS["years"][-1])
         st.slider("Publication Year", min_value=_min_y, max_value=_max_y, key="f_year")
         st.number_input("Minimum Citations", min_value=0, step=10, key="f_min_cit")
 
-    with st.expander("📚 Publication Details", expanded=False):
+    with st.expander("Publication Details", expanded=False):
         st.multiselect("Source Journal", options=OPTIONS["journals"], key="f_journal")
         if "Other Journals" in st.session_state.f_journal:
             st.caption("'Other Journals' includes any journal with fewer than 100 papers in the corpus.")
         st.multiselect("Open Access Status", options=OPTIONS["oa"], key="f_oa")
 
-    with st.expander("🌍 Geography & Institutions", expanded=False):
+    with st.expander("Geography & Institutions", expanded=False):
         st.multiselect("Country (first author)",
                        options=OPTIONS["countries"], key="f_country")
         st.multiselect(
@@ -313,7 +313,7 @@ with st.sidebar:
                 "Top 5: " + " · ".join(OPTIONS["top_institutions"][:5])
             )
 
-    with st.expander("🧬 Technology & Funding", expanded=False):
+    with st.expander("Technology & Funding", expanded=False):
         st.multiselect("Technology Cluster",
                        options=OPTIONS["tech_clusters"], key="f_tech_cluster",
                        help="25 semantic clusters derived from GPT-extracted technology labels.")
