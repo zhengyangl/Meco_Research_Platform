@@ -575,9 +575,20 @@ div[data-testid="stTabs"] button[role="tab"]:hover p {
 
 /* Active tab state */
 div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-    background-color: #FFFFFF !important;
-    border: 1px solid #FFFFFF !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03) !important;
+    background-color: #F8FAFC !important;
+    border: 1px solid #2563EB !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 8px -2px rgba(37,99,235,0.15) !important;
+}
+
+
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
+    color: #2563EB !important;
+    font-weight: 650 !important;
+}
+
+div[data-testid="stTabs"] button[role="tab"]:hover p {
+    color: #2563EB !important;
 }
 
 /* Style active tab text */
@@ -660,12 +671,12 @@ if len(df) > 0:
                         customdata = _country_df["n"],
                         text = _country_df["label"],
                         colorscale = [
-                            [0.00, "#F8FAF5"],
-                            [0.12, "#E2EDDA"],
-                            [0.30, "#A3C4A3"],
-                            [0.60, "#5B8A5B"],
-                            [1.00, "#2D4A2D"],
-                        ],
+    						[0.00, "#F1F5F9"], 
+    						[0.25, "#C8D9C3"],
+    						[0.55, "#7A9E6F"],
+    						[0.85, "#4F7942"],
+    						[1.00, "#2D4A24"], 
+						],
                         autocolorscale = False,
                         showscale = False,
                         hovertemplate = "<b>%{text}</b><br>%{customdata:,} papers<extra></extra>",
@@ -776,7 +787,7 @@ if len(df) > 0:
             
             # Color: green if >= 500, muted amber if < 500 (research gap)
             _gap_df["color"] = _gap_df["n"].apply(
-                lambda x: "#5B8A5B" if x >= 500 else "#C4956A"
+                lambda x: "#4F7942" if x >= 500 else "#B7791F"
             )
             
             fig_gap = go.Figure()
@@ -792,11 +803,14 @@ if len(df) > 0:
             
             # Threshold line at 500
             fig_gap.add_vline(
-                x=500, line_dash="dot", line_color="#DC2626", line_width=1.2,
-                annotation_text="gap threshold (500)",
-                annotation_position="top right",
-                annotation_font=dict(size=9, color="#DC2626", family="Inter, sans-serif"),
+                x=500, line_dash="dot", line_color="#2563EB", line_width=2,
             )
+            
+            fig_gap.add_annotation(
+                x=500, y=1.05, xref="x", yref="paper", text="Gap threshold: 500", showarrow=False,
+    			font=dict(size=12, color="#2563EB"),
+			)
+            
             
             fig_gap.update_layout(
                 paper_bgcolor = "rgba(0,0,0,0)",
@@ -897,15 +911,15 @@ if len(df) > 0:
                     marker = dict(
                         colors = _cluster_counts["median_cited"],
                         colorscale = [
-                            [0.00, "#F0FAF0"],
-                            [0.25, "#A3C4A3"],
-                            [0.55, "#5B8A5B"],
-                            [1.00, "#2D4A2D"],
+                            [0.00, "#F8FAFC"],
+                            [0.30, "#E8DDD2"],
+                            [0.60, "#D6A77A"],
+                            [1.00, "#A85D16"],
                         ],
                         line = dict(width=2, color="#F0FAF0"),
                         colorbar = dict(
                             title = dict(
-                                text = "Median<br>citations",
+                                text = "Citation<br>Impact",
                                 font = dict(size=10, color="#64748B", family="Inter, sans-serif"),
                             ),
                             thickness = 10,
@@ -966,6 +980,7 @@ if len(df) > 0:
 
 else:
     st.info("No data matches the selected filters.")
+
 
 # ══════════════════════
 # MAIN TABLE 
