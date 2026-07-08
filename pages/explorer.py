@@ -534,70 +534,77 @@ st.markdown('<div style="margin-top:1.2rem;"></div>', unsafe_allow_html=True)
 # Custom CSS for tabs and cards
 st.markdown("""
 <style>
-/* Set tab container */
-div[data-testid="stTabs"] > div[role="tablist"] {
-    gap: 12px !important;
+
+/* ============================
+   Tabs
+   ============================ */
+
+/* Tab container */
+.stTabs [role="tablist"] {
+    gap: 12px;
     border-bottom: none !important;
-    padding-bottom: 0.5rem !important;
+    padding-bottom: 0.5rem;
 }
 
-/* Hide default bottom highlight */
-div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
+/* Hide default indicator (older Streamlit versions) */
+.stTabs [data-baseweb="tab-highlight"] {
     display: none !important;
 }
 
-/* Style inactive tabs */
-div[data-testid="stTabs"] button[role="tab"] {
-    background-color: #F8FAFC !important;
+/* Hide selection indicator (newer Streamlit versions) */
+.stTabs .react-aria-SelectionIndicator {
+    display: none !important;
+}
+
+/* Base tab */
+.stTabs [role="tab"] {
+    background: #F8FAFC !important;
     border: 1px solid #E2E8F0 !important;
     border-radius: 8px !important;
     padding: 8px 16px !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
-    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    transition: all 0.2s ease;
 }
 
-/* Style inactive tab text */
-div[data-testid="stTabs"] button[role="tab"] p {
+/* Tab text */
+.stTabs [role="tab"] p {
     color: #64748B !important;
     font-weight: 500 !important;
-    font-family: 'Inter', sans-serif !important;
-    margin: 0 !important;
+    font-family: "Inter", sans-serif;
+    margin: 0;
 }
 
-/* Hover state */
-div[data-testid="stTabs"] button[role="tab"]:hover {
-    background-color: #F1F5F9 !important;
+/* Hover */
+.stTabs [role="tab"]:hover {
+    background: #F1F5F9 !important;
     border-color: #CBD5E1 !important;
 }
-div[data-testid="stTabs"] button[role="tab"]:hover p {
-    color: #334155 !important;
+
+.stTabs [role="tab"]:hover p {
+    color: #2563EB !important;
 }
 
-/* Active tab state */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-    background-color: #F8FAFC !important;
+/* Active tab (support both old and new Streamlit) */
+.stTabs [role="tab"][aria-selected="true"],
+.stTabs [role="tab"][data-selected="true"] {
+    background: #FFFFFF !important;
     border: 1px solid #2563EB !important;
     border-radius: 8px !important;
-    box-shadow: 0 4px 8px -2px rgba(37,99,235,0.15) !important;
+    box-shadow: 0 4px 8px rgba(37,99,235,0.12);
 }
 
-
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
+/* Active text */
+.stTabs [role="tab"][aria-selected="true"] p,
+.stTabs [role="tab"][data-selected="true"] p {
     color: #2563EB !important;
-    font-weight: 650 !important;
-}
-
-div[data-testid="stTabs"] button[role="tab"]:hover p {
-    color: #2563EB !important;
-}
-
-/* Style active tab text */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
-    color: #0F172A !important;
     font-weight: 600 !important;
 }
 
-/* Chart card styles */
+
+/* ============================
+   Chart cards
+   ============================ */
+
 .chart-card {
     background: #FFFFFF;
     border: 1px solid #E2E8F0;
@@ -606,16 +613,19 @@ div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     margin-top: 0.8rem;
 }
+
 .chart-card-title {
-    font: 600 0.82rem/1 'Inter', sans-serif;
+    font: 600 0.82rem/1 "Inter", sans-serif;
     color: #0F172A;
     margin-bottom: 0.15rem;
 }
+
 .chart-card-sub {
-    font: 400 0.7rem/1.4 'Inter', sans-serif;
+    font: 400 0.7rem/1.4 "Inter", sans-serif;
     color: #94A3B8;
     margin-bottom: 0.8rem;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
