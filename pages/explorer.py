@@ -936,7 +936,7 @@ if len(df) > 0:
                         line = dict(width=2, color="#F0FAF0"),
                         colorbar = dict(
                             title = dict(
-                                text = "Citation<br>Impact",
+                                text = "Median<br>Citations",
                                 font = dict(size=10, color="#64748B", family="Inter, sans-serif"),
                             ),
                             thickness = 10,
