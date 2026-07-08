@@ -1221,7 +1221,7 @@ with _export_col:
         selected_text = ", ".join(_ALL_EXPORT_COLS[c] for c in _valid_cols[:8])
         if len(_valid_cols) > 8:
             selected_text += " ..."
-        st.caption(f"Select: {selected_text}")
+        st.caption(f"Selected: {selected_text}")
 
     if _valid_cols:
         _csv = df[_valid_cols].to_csv(index=False).encode("utf-8")
