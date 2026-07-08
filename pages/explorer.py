@@ -531,44 +531,62 @@ _tier_card(
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.2rem;"></div>', unsafe_allow_html=True)
 
-# Custom CSS for tabs
+# Custom CSS for tabs and cards
 st.markdown("""
 <style>
-/* Tab container */
+/* Set tab container */
 div[data-testid="stTabs"] > div[role="tablist"] {
-    gap: 6px !important;
+    gap: 12px !important;
     border-bottom: none !important;
-    padding-bottom: 0 !important;
+    padding-bottom: 0.5rem !important;
 }
-/* Individual tab buttons */
-div[data-testid="stTabs"] button[role="tab"] {
-    background: #FFFFFF !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 6px !important;
-    color: #64748B !important;
-    font: 500 .75rem/1 'Inter', sans-serif !important;
-    padding: 0.5rem 1rem !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
-    transition: all .15s;
-}
-/* Active tab */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-    background: #0F172A !important;
-    color: #FFFFFF !important;
-    border-color: #0F172A !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
-}
-/* Hover */
-div[data-testid="stTabs"] button[role="tab"]:hover {
-    border-color: #94A3B8 !important;
-}
-/* Remove the default bottom indicator line */
-div[data-testid="stTabs"] button[role="tab"][aria-selected="true"]::after,
+
+/* Hide default bottom highlight */
 div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {
     display: none !important;
-    background: none !important;
 }
-/* Chart card wrapper */
+
+/* Style inactive tabs */
+div[data-testid="stTabs"] button[role="tab"] {
+    background-color: #F8FAFC !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Style inactive tab text */
+div[data-testid="stTabs"] button[role="tab"] p {
+    color: #64748B !important;
+    font-weight: 500 !important;
+    font-family: 'Inter', sans-serif !important;
+    margin: 0 !important;
+}
+
+/* Hover state */
+div[data-testid="stTabs"] button[role="tab"]:hover {
+    background-color: #F1F5F9 !important;
+    border-color: #CBD5E1 !important;
+}
+div[data-testid="stTabs"] button[role="tab"]:hover p {
+    color: #334155 !important;
+}
+
+/* Active tab state */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #FFFFFF !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03) !important;
+}
+
+/* Style active tab text */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {
+    color: #0F172A !important;
+    font-weight: 600 !important;
+}
+
+/* Chart card styles */
 .chart-card {
     background: #FFFFFF;
     border: 1px solid #E2E8F0;
@@ -605,9 +623,9 @@ _PLOTLY_COUNTRY_MAP = {
 if len(df) > 0:
     with st.expander("📊 Visualizations — Geographic · Trends · Technology", expanded=False):
         tab_map, tab_trend, tab_tech = st.tabs([
-            "🌍 Global Landscape",
-            "🔍 Where Are the Gaps?",
-            "🧬 Technology Ecosystem"
+            "Global Landscape",
+            "Gap Analysis",
+            "Tech Ecosystem"
         ])
 
         # ── Choropleth ────────────────────────────────────────
@@ -948,7 +966,6 @@ if len(df) > 0:
 
 else:
     st.info("No data matches the selected filters.")
-
 
 # ══════════════════════
 # MAIN TABLE 
