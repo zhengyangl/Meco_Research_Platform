@@ -1160,16 +1160,19 @@ for the codebase and `docs/handover.md` for the 5-step update procedure.
 Aggregate generated: {META.get("generated_at", "—")}*
     """)
 # ════════════════════════════════════════════════════════════════
-# EXPORT & SHARE
+# EXPORT
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.0rem;"></div>', unsafe_allow_html=True)
 
 _export_col = st.container()
-
 with _export_col:
-    st.markdown('<div style="font: 600 .65rem/1.2 Inter, sans-serif; letter-spacing: .05em; color: #8A847B; margin-bottom: 0.5rem; text-transform: uppercase;">Export Data</div>', unsafe_allow_html=True)
-    
-    # Let users choose which columns to include in the export.
+    st.markdown(
+        '<div style="font: 600 .65rem/1.2 Inter, sans-serif; '
+        'letter-spacing: .05em; color: #8A847B; margin-bottom: 0.4rem; '
+        'text-transform: uppercase;">Export Data</div>',
+        unsafe_allow_html=True
+    )
+
     _ALL_EXPORT_COLS = {
         "wos_id":               "WoS ID",
         "doi":                  "DOI",
@@ -1194,13 +1197,13 @@ with _export_col:
         "addresses":            "Addresses",
         "funding_orgs":         "Funding Orgs (raw)",
     }
-    # Default selection: the most commonly needed columns
+
     _DEFAULT_EXPORT = [
         "wos_id", "doi", "title", "authors", "pub_year", "source_title",
         "times_cited", "ecosystem_service", "category", "technology",
         "technology_cluster", "country_first", "institution_top",
     ]
-    
+
     _selected_cols = st.multiselect(
         "Columns to export",
         options=list(_ALL_EXPORT_COLS.keys()),
@@ -1208,11 +1211,21 @@ with _export_col:
         format_func=lambda x: _ALL_EXPORT_COLS[x],
         label_visibility="collapsed",
     )
-    
-    if _selected_cols:
-        # Only include columns that actually exist in the dataframe
-        _valid_cols = [c for c in _selected_cols if c in df.columns]
+
+    if not _selected_cols: 
+        _selected_cols = _DEFAULT_EXPORT.copy()
+
+    _valid_cols = [c for c in _selected_cols if c in df.columns]
+
+    if _valid_cols:
+        selected_text = ", ".join(_ALL_EXPORT_COLS[c] for c in _valid_cols[:8])
+        if len(_valid_cols) > 8:
+            selected_text += " ..."
+        st.caption(f"Select: {selected_text}")
+
+    if _valid_cols:
         _csv = df[_valid_cols].to_csv(index=False).encode("utf-8")
+        
         st.download_button(
             label=f"⬇ Download {len(df):,} records · {len(_valid_cols)} fields",
             data=_csv,
@@ -1220,4 +1233,4 @@ with _export_col:
             mime="text/csv",
         )
     else:
-        st.caption("Select at least one column to enable download.")
+        st.warning("No valid columns available for export.")
