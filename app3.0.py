@@ -172,8 +172,18 @@ button[data-variant="pills"]:focus-visible {
 }
 
 /* ── Section 1: Narrative ────────────────────────────────── */
-.s1-title  { font: 700 3.4rem/1.08 'Playfair Display', serif; color: #2A2722; margin-bottom: .85rem; }
-.s1-sub    { font: 300 1.05rem/1.85 'Inter', sans-serif; color: #6B665E; max-width: 580px; margin-bottom: .5rem; }
+.s1-title { 
+    font: 700 3.6rem/1.15 'Playfair Display', serif !important; 
+    color: #2A2722 !important; 
+    margin-bottom: 1rem !important; 
+    letter-spacing: -0.01em !important; 
+}
+.s1-sub { 
+    font: 300 1.05rem/1.85 'Inter', sans-serif !important; 
+    color: #6B665E !important; 
+    max-width: 580px !important; 
+    margin-bottom: .5rem !important; 
+}
 .s1-bridge {
     font: 400 1.0rem/1.7 'Inter', sans-serif; color: #4A453E;
     padding: 1rem 1.5rem; border-left: 3px solid #3D7A52;
@@ -194,14 +204,26 @@ button[data-variant="pills"]:focus-visible {
 .kpi-note      { font: 300 .67rem/1.45 'Inter', sans-serif; color: #9A938A; display: block; }
 
 /* ── Section 2 / 3 / 4 / 6 narrative ─────────────────────── */
-.s2-title { font: 700 3.2rem/1.08 'Playfair Display', serif; color: #2A2722; margin-bottom: .85rem; }
-.s2-sub   { font: 300 1.02rem/1.85 'Inter', sans-serif; color: #6B665E; max-width: 600px; margin-bottom: .5rem; }
-.s3-title { font: 700 3.2rem/1.08 'Playfair Display', serif; color: #2A2722; margin-bottom: .85rem; }
-.s3-sub   { font: 300 1.02rem/1.85 'Inter', sans-serif; color: #6B665E; max-width: 600px; margin-bottom: .5rem; }
-.s4-title { font: 700 3.2rem/1.08 'Playfair Display', serif; color: #2A2722; margin-bottom: .85rem; }
-.s4-sub   { font: 300 1.02rem/1.85 'Inter', sans-serif; color: #6B665E; max-width: 600px; margin-bottom: .5rem; }
-.s6-title { font: 700 3.2rem/1.08 'Playfair Display', serif; color: #2A2722; margin-bottom: .85rem; }
-.s6-sub   { font: 300 1.02rem/1.85 'Inter', sans-serif; color: #6B665E; max-width: 620px; margin-bottom: .5rem; }
+.s2-title, .s3-title, .s4-title, .s6-title { 
+    font: 700 3.4rem/1.15 'Playfair Display', serif !important; 
+    color: #2A2722 !important; 
+    margin-bottom: .85rem !important; 
+    letter-spacing: -0.01em !important; 
+}
+.s2-sub, .s3-sub, .s4-sub, .s6-sub { 
+    font: 300 1.02rem/1.85 'Inter', sans-serif !important; 
+    color: #6B665E !important; 
+    max-width: 620px !important; 
+    margin-bottom: .5rem !important; 
+}
+div[data-testid="stRadio"] label { font: 400 .82rem/1 'Inter', sans-serif !important; color: #4A453E !important; }
+div[data-testid="stRadio"] > div { gap: 1rem; }
+.scenario-callout {
+    background: rgba(61,122,82,0.07); border: 1px solid rgba(61,122,82,0.22);
+    border-left: 3px solid #3D7A52; border-radius: 0 8px 8px 0;
+    padding: .85rem 1.2rem; font: 300 .82rem/1.65 'Inter', sans-serif;
+    color: #4A453E; margin-bottom: 1rem;
+}
 div[data-testid="stRadio"] label { font: 400 .82rem/1 'Inter', sans-serif !important; color: #4A453E !important; }
 div[data-testid="stRadio"] > div { gap: 1rem; }
 .scenario-callout {
