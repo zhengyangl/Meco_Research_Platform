@@ -123,14 +123,13 @@ div.block-container { max-width: 1080px; padding-left: 2rem; padding-right: 2rem
 .insight-cta   { font: 500 .75rem/1 'Inter', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
 .insight-empty { text-align: center; padding: 2rem; color: #B8B0A4; font: 300 .88rem/1.6 'Inter', sans-serif; }
 
-div:has(> button[data-testid*="stBaseButton-pill"]) {
+div:has(> button[data-variant="pills"]) {
     justify-content: center !important;
     gap: 14px 12px !important;
     padding: 10px 0 20px 0;
 }
 
-button[data-testid="stBaseButton-pills"],
-button[data-testid="stBaseButton-pillsActive"] {
+button[data-variant="pills"] {
     background-color: #FFFFFF !important;
     border: 1px solid #E5E1DA !important;
     border-radius: 30px !important;
@@ -145,21 +144,20 @@ button[data-testid="stBaseButton-pillsActive"] {
     min-height: 62px !important; 
 }
 
-button[data-testid="stBaseButton-pills"]:hover,
-button[data-testid="stBaseButton-pillsActive"]:hover {
+button[data-variant="pills"]:hover {
     transform: translateY(-3px) !important;
     box-shadow: 0 6px 12px rgba(61,122,82,0.08) !important;
     border-color: rgba(61,122,82,0.3) !important;
     color: #2A2722 !important;
 }
 
-button[data-testid="stBaseButton-pills"]:active,
-button[data-testid="stBaseButton-pillsActive"]:active {
+button[data-variant="pills"]:active {
     transform: translateY(1px) !important;
     box-shadow: 0 1px 2px rgba(61,122,82,0.1) !important;
 }
 
-button[data-testid="stBaseButton-pillsActive"] {
+button[data-variant="pills"][data-selected="true"],
+button[data-variant="pills"][aria-pressed="true"] {
     background-color: rgba(61, 122, 82, 0.08) !important;
     border: 1.5px solid #3D7A52 !important;
     color: #356B49 !important;
@@ -168,7 +166,7 @@ button[data-testid="stBaseButton-pillsActive"] {
     transform: translateY(0) !important; 
 }
 
-button[data-testid*="stBaseButton-pill"]:focus-visible {
+button[data-variant="pills"]:focus-visible {
     box-shadow: none !important;
     outline: none !important;
 }
