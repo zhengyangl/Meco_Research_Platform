@@ -1,7 +1,10 @@
 """
-MEco Research Dashboard — Complete Single-Page Application (v3)
+MEco Research Dashboard — Complete Single-Page Application (LIGHT THEME · v3)
 "Nature Is Not Optional."
 Based on Jacobs et al. (2025), Biomimetics 2025, 10, 784
+
+Run with:
+    streamlit run app.py
 """
 
 # ════════════════════════════════════════════════════════════════
@@ -374,8 +377,20 @@ def _load_services_summary():
     with open(_DATA_DIR / "services_summary.json", encoding="utf-8") as f:
         return _json.load(f)
 
+@st.cache_data
+def _load_annual_by_category():
+    with open(_DATA_DIR / "annual_by_category.json", encoding="utf-8") as f:
+        return _json.load(f)
+
+@st.cache_data
+def _load_country_oa():
+    with open(_DATA_DIR / "country_oa.json", encoding="utf-8") as f:
+        return _json.load(f)
+
 CORPUS = _load_corpus_meta()       # corpus_meta.json contents
 SVC_SUMMARY = _load_services_summary()  # services_summary.json contents
+ANNUAL = _load_annual_by_category()     # annual_by_category.json contents
+COUNTRY_OA = _load_country_oa()         # country_oa.json contents
 
 # ── Service display-name mapping ────────────────────────────────────
 # Database / aggregate.py stores the raw GPT classification values
@@ -390,6 +405,11 @@ SERVICE_DISPLAY_NAMES = {
 }
 def display_name(raw: str) -> str:
     return SERVICE_DISPLAY_NAMES.get(raw, raw)
+
+# Reverse mapping: pretty label → raw DB name (for deep-link URLs).
+SERVICE_RAW_NAMES = {v: k for k, v in SERVICE_DISPLAY_NAMES.items()}
+def raw_name(pretty: str) -> str:
+    return SERVICE_RAW_NAMES.get(pretty, pretty)
 
 
 # ════════════════════════════════════════════════════════════════
@@ -687,7 +707,7 @@ def build_sankey(replace, enhance, support, label_r, label_e, label_s):
 
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 0 · Feel — compact tag/chip grid
+# SECTION 0 · Feel 
 # ════════════════════════════════════════════════════════════════
 
 # Hero-nav + opening-animation CSS.
@@ -781,110 +801,156 @@ st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div id="sec-feel" class="sec-anchor"></div>', unsafe_allow_html=True)
 
 # ── Everyday actions → the ecosystem services they quietly invoke ──
-# These mappings are illustrative (NOT from Jacobs et al.): they translate a
-# routine action into the bundle of services that make it possible, so readers
-# meet the data through their own morning instead of through ES jargon. Every
-# service name below must match a name in SERVICES exactly.
+# 【重构 1：底层统一】这里的映射严格使用来自数据库的 RAW NAME，绝不使用 Display Name
 _EVERYDAY_ACTIONS = {
     "☕ Drank coffee or tea":                 ["Potable Water", "Pollination", "Soil Formation", "Nutrient Cycling"],
     "🍳 Ate a meal with fresh produce":       ["Food", "Pollination", "Primary Production", "Biodiversity"],
-    "👕 Put on cotton or wool clothing":      ["Fibre · Hide · Wood", "Soil Formation", "Nutrient Cycling"],
-    "🌬️ Took a deep breath outside":          ["Atmospheric Reg.", "Climate Regulation", "Disease Regulation"],
+    "👕 Put on cotton or wool clothing":      ["Fibre/Hide/Wood", "Soil Formation", "Nutrient Cycling"], # Raw DB Name
+    "🌬️ Took a deep breath outside":          ["Atmospheric Regulation", "Climate Regulation", "Disease Regulation"], # Raw DB Name
     "🚰 Washed up or flushed the toilet":     ["Potable Water", "Waste Treatment", "Water Regulation"],
-    "💊 Took medication or vitamins":         ["Biochemicals"],
+    "💊 Took medication or vitamins":          ["Biochemicals"],
     "⚡ Turned on the heating or AC":          ["Fuel", "Climate Regulation"],
-    "🌳 Walked in a park or noticed nature":  ["Aesthetic", "Recreation", "Inspiration · Education"],
-    "📦 Used paper or wooden products":       ["Fibre · Hide · Wood", "Primary Production"],
+    "🌳 Walked in a park or noticed nature":  ["Aesthetic", "Recreation", "Inspiration/Education"], # Raw DB Name
+    "📦 Used paper or wooden products":       ["Fibre/Hide/Wood", "Primary Production"], # Raw DB Name
     "🕊️ Felt tied to your local landscape":   ["Cultural Heritage", "Spiritual", "Cultural Identity"],
     "🦋 Saw a bird, insect, or wild animal":  ["Biodiversity", "Pollination", "Coastline Regulation"],
 }
 
-# Native pills (Streamlit >= 1.40). Multi-select returns a list of labels.
-_selected_actions = st.pills(
+# Native pills (Streamlit >= 1.40)
+selected_actions = st.pills(
     "Everyday actions",
     options=list(_EVERYDAY_ACTIONS.keys()),
     selection_mode="multi",
     label_visibility="collapsed",
 ) or []
 
-# Map actions → triggered services, then WRITE THE RESULT BACK to session_state
-# under each service name. Section 5's data-echo reads st.session_state[name];
-# keeping these in sync is what preserves the first/last narrative callback.
-_triggered_names = set()
-for _act in _selected_actions:
-    _triggered_names.update(_EVERYDAY_ACTIONS[_act])
-for _name in _svc_names:
-    st.session_state[_name] = (_name in _triggered_names)
-
-_all_services_flat0 = [s for cat in SERVICES.values() for s in cat["items"]]
-_s0_selected = [s for s in _all_services_flat0 if s["name"] in _triggered_names]
-_n0_actions  = len(_selected_actions)
-_n0          = len(_s0_selected)
-
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
+
+# ── 处理逻辑：Raw Name 流转 ─────────────────────────────────────────────
+# 1. 收集所有触发的底层服务名称 (Raw Names)
+triggered_raw_names = set()
+for action in selected_actions:
+    triggered_raw_names.update(_EVERYDAY_ACTIONS[action])
+
+# 2. Sync triggered services into session_state.
+# Keys use display names because downstream UI components reference s["name"].
+# Matching remains based on RAW ecosystem service identifiers.
+for s_cat in SERVICES.values():
+    for s_item in s_cat["items"]:
+        raw_val = raw_name(s_item["name"])
+
+        st.session_state[s_item["name"]] = (
+            raw_val in triggered_raw_names
+        )
+
+all_services_flat = [s for cat in SERVICES.values() for s in cat["items"]]
+
+selected_services = [
+    s for s in all_services_flat 
+    if raw_name(s["name"]) in triggered_raw_names
+]
+
+num_actions = len(selected_actions)
+num_services = len(selected_services)
 
 # ── Live counter ──────────────────────────────────────────────
 st.markdown(f"""
 <div class="ctr">
-    <div class="ctr-n">{_n0}</div>
+    <div class="ctr-n">{num_services}</div>
     <div class="ctr-sub">
-        hidden ecosystem {"service" if _n0 == 1 else "services"} behind your
-        {_n0_actions} routine {"action" if _n0_actions == 1 else "actions"} this morning
+        hidden ecosystem {"service" if num_services == 1 else "services"} behind your
+        {num_actions} routine {"action" if num_actions == 1 else "actions"}
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Personalised insight panel ───────────────────────────────
-if _n0 == 0:
+if num_services == 0:
     st.markdown("""
     <div class="insight-empty">
-        ↑ Tap at least one everyday action to reveal the unseen natural systems behind your morning.
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    _gap0 = [s for s in _s0_selected if s["papers"] < RESEARCH_GAP_THRESHOLD]
-    _ok0  = [s for s in _s0_selected if s["papers"] >= RESEARCH_GAP_THRESHOLD]
-    _ngap0 = len(_gap0)
-    _act_word = "action" if _n0_actions == 1 else "actions"
-    if _ngap0 == 0:
-        _body0 = (f'Those <span class="hl-green">{_n0_actions}</span> simple {_act_word} quietly rely on '
-                  f'<span class="hl-green">{_n0}</span> distinct ecosystem services. '
-                  f'The ones behind your morning happen to be relatively well-studied in bio-inspired research. '
-                  f"Scroll down to see what happens to the rest.")
-    elif _ngap0 == _n0:
-        _body0 = (f'You thought you just went about your morning — but those '
-                  f'<span class="hl-green">{_n0_actions}</span> {_act_word} invoked '
-                  f'<span class="hl-red">{_n0}</span> distinct ecosystem services, and '
-                  f'<em>every single one</em> has fewer than {RESEARCH_GAP_THRESHOLD:,} bio-inspired research papers. '
-                  f'Science is building technological backups — just not yet for the things <em>you</em> just used.')
-    else:
-        _body0 = (f'You thought you just went about your morning. In fact those '
-                  f'<span class="hl-green">{_n0_actions}</span> {_act_word} quietly invoked '
-                  f'<span class="hl-green">{_n0}</span> distinct ecosystem services — and '
-                  f'<span class="hl-red">{_ngap0}</span> of them '
-                  f'{"has" if _ngap0 == 1 else "have"} fewer than {RESEARCH_GAP_THRESHOLD:,} bio-inspired research papers. '
-                  f'If those hidden systems fail, very few technological backup plans currently exist.')
-    _gap_tags0 = "".join(f'<span class="tag tag-gap">{s["icon"]} {s["name"]}</span>' for s in _gap0)
-    _ok_tags0  = "".join(f'<span class="tag tag-ok">{s["icon"]} {s["name"]}</span>' for s in _ok0)
-    _gap_block0 = (f'<div style="margin-bottom:.9rem">'
-                   f'<div class="tag-sec-lbl lbl-gap">Research gap — fewer than {RESEARCH_GAP_THRESHOLD:,} papers ({_ngap0})</div>'
-                   f'{_gap_tags0}</div>') if _gap0 else ""
-    _ok_block0  = (f'<div style="margin-bottom:1.4rem">'
-                   f'<div class="tag-sec-lbl lbl-ok">Better researched ({len(_ok0)})</div>'
-                   f'{_ok_tags0}</div>') if _ok0 else ""
-    st.markdown(f"""
-    <div class="insight">
-        <div class="insight-title">What the research says about your morning.</div>
-        <div class="insight-body">{_body0}</div>
-        {_gap_block0}
-        {_ok_block0}
-        <div class="insight-cta">↓ &nbsp; Scroll to see what 20 years of global research actually looks like</div>
+        ↑ Tap at least one everyday action to reveal the unseen natural systems running in the background.
     </div>
     """, unsafe_allow_html=True)
 
+else:
+    gap_services = [s for s in selected_services if s["papers"] < RESEARCH_GAP_THRESHOLD]
+    well_researched_services = [s for s in selected_services if s["papers"] >= RESEARCH_GAP_THRESHOLD]
+
+    num_gaps = len(gap_services)
+    act_word = "action" if num_actions == 1 else "actions"
+
+    if num_gaps == 0:
+        body_text = (
+            f'Those <span class="hl-green">{num_actions}</span> simple {act_word} quietly rely on '
+            f'<span class="hl-green">{num_services}</span> distinct ecosystem services. '
+            f'The ones behind your choices happen to be relatively well-studied in bio-inspired research. '
+            f"Scroll down to see what happens to the rest."
+        )
+    elif num_gaps == num_services:
+        body_text = (
+            f'You thought you were just going about your day — but those '
+            f'<span class="hl-green">{num_actions}</span> {act_word} invoked '
+            f'<span class="hl-red">{num_services}</span> distinct ecosystem services, and '
+            f'<em>every single one</em> has fewer than {RESEARCH_GAP_THRESHOLD:,} bio-inspired research papers. '
+            f'Science is building technological backups — just not yet for the things <em>you</em> just relied on.'
+        )
+    else:
+        body_text = (
+            f'You thought you were just going about your day. In fact those '
+            f'<span class="hl-green">{num_actions}</span> {act_word} quietly invoked '
+            f'<span class="hl-green">{num_services}</span> distinct ecosystem services — and '
+            f'<span class="hl-red">{num_gaps}</span> of them '
+            f'{"has" if num_gaps == 1 else "have"} fewer than {RESEARCH_GAP_THRESHOLD:,} bio-inspired research papers. '
+            f'If those hidden systems fail, very few technological backup plans currently exist.'
+        )
+
+    gap_html_list = []
+    for s in gap_services:
+        if isinstance(s, dict):
+            icon = s.get("icon", "🌱")
+            safe_name = str(s.get("name", "Unknown Service")).replace("<", "&lt;").replace(">", "&gt;")
+            gap_html_list.append(f'<span class="tag tag-gap">{icon} {safe_name}</span>')
+
+    gap_tags_html = "".join(gap_html_list)
+
+    ok_html_list = []
+    for s in well_researched_services:
+        if isinstance(s, dict):
+            icon = s.get("icon", "🌱")
+            safe_name = str(s.get("name", "Unknown Service")).replace("<", "&lt;").replace(">", "&gt;")
+            ok_html_list.append(f'<span class="tag tag-ok">{icon} {safe_name}</span>')
+
+    ok_tags_html = "".join(ok_html_list)
+
+    gap_block_html = (
+        f'<div style="margin-bottom:.9rem">'
+        f'<div class="tag-sec-lbl lbl-gap">Research gap — fewer than {RESEARCH_GAP_THRESHOLD:,} papers ({num_gaps})</div>'
+        f'{gap_tags_html}'
+        f'</div>'
+    ) if gap_services else ""
+
+    ok_block_html = (
+        f'<div style="margin-bottom:1.4rem">'
+        f'<div class="tag-sec-lbl lbl-ok">Better researched ({len(well_researched_services)})</div>'
+        f'{ok_tags_html}'
+        f'</div>'
+    ) if well_researched_services else ""
+
+    html_payload = [
+        '<div class="insight">',
+        '<div class="insight-title">What the research says about your choices.</div>',
+        f'<div class="insight-body">{body_text}</div>',
+        gap_block_html,
+        ok_block_html,
+        '<div class="insight-cta">↓ &nbsp; Scroll to see what 20 years of global research actually looks like</div>',
+        '</div>'
+    ]
+    
+    final_html = "".join([p for p in html_payload if p != ""])
+    st.markdown(final_html, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 1 · Discovery — 68,917 Attempts  
+# SECTION 1 · Discovery 
 # ════════════════════════════════════════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-discovery" class="sec-anchor"></div>', unsafe_allow_html=True)
@@ -950,27 +1016,28 @@ st.markdown("""
 
 st.markdown('<div class="chart-label">Biomimetic design paradigms · 2004 – 2025</div>',
             unsafe_allow_html=True)
-credibility_badge(has_real=True, has_sim=True)
-np.random.seed(42)
-_years = list(range(2004, 2026))
-_raw_w = np.array([0.80,1.00,1.30,1.70,2.20,2.80,3.50,4.30,5.20,6.00,6.80,7.50,
-                   8.00,8.50,9.00,9.50,10.0,10.5,11.0,11.5,11.8,4.50])
-_base  = (_raw_w / _raw_w.sum() * CORPUS["decision_y"]).astype(int)
-_base  = np.maximum((_base * np.random.uniform(0.94,1.06,len(_years))).astype(int), 5)
-_r_frac = np.random.uniform(0.55, 0.61, len(_years))
-_s_frac = np.random.uniform(0.026, 0.034, len(_years))
-_replace_data = (_base * _r_frac).astype(int)
-_support_data = np.maximum((_base * _s_frac).astype(int), 3)
-_enhance_data = _base - _replace_data - _support_data
+credibility_badge(has_real=True, has_sim=False)
+
+# Real annual data from annual_by_category.json
+_years        = ANNUAL["years"]
+_replace_data = ANNUAL["replace"]
+_enhance_data = ANNUAL["enhance"]
+_support_data = ANNUAL["support"]
+
+# Compute real paradigm percentages for legend labels
+_total_all = sum(_replace_data) + sum(_enhance_data) + sum(_support_data)
+_pct_r = round(sum(_replace_data) / _total_all * 100) if _total_all else 0
+_pct_e = round(sum(_enhance_data) / _total_all * 100) if _total_all else 0
+_pct_s = round(sum(_support_data) / _total_all * 100) if _total_all else 0
 
 _area_fig = go.Figure()
-_area_fig.add_trace(go.Scatter(x=_years, y=_support_data, name="Support  (3%)", mode="lines",
+_area_fig.add_trace(go.Scatter(x=_years, y=_support_data, name=f"Support  ({_pct_s}%)", mode="lines",
     line=dict(width=0.8, color="#2E7CB8"), fillcolor="rgba(46,124,184,0.55)", stackgroup="one",
     hovertemplate="<b>%{x}</b><br>Support: %{y:,} papers<extra></extra>"))
-_area_fig.add_trace(go.Scatter(x=_years, y=_enhance_data, name="Enhance  (39%)", mode="lines",
+_area_fig.add_trace(go.Scatter(x=_years, y=_enhance_data, name=f"Enhance  ({_pct_e}%)", mode="lines",
     line=dict(width=0.8, color="#1D8C69"), fillcolor="rgba(29,140,105,0.42)", stackgroup="one",
     hovertemplate="<b>%{x}</b><br>Enhance: %{y:,} papers<extra></extra>"))
-_area_fig.add_trace(go.Scatter(x=_years, y=_replace_data, name="Replace  (58%)", mode="lines",
+_area_fig.add_trace(go.Scatter(x=_years, y=_replace_data, name=f"Replace  ({_pct_r}%)", mode="lines",
     line=dict(width=0.8, color="#A8740E"), fillcolor="rgba(168,116,14,0.45)", stackgroup="one",
     hovertemplate="<b>%{x}</b><br>Replace: %{y:,} papers<extra></extra>"))
 _area_fig.add_vline(x=2013, line_dash="dot", line_color="rgba(42,39,34,0.20)", line_width=1.2)
@@ -978,31 +1045,61 @@ _area_fig.add_annotation(x=2013.25, y=0.97, yref="paper",
     text='Fitter (2013):<br>"Can ES be replaced?"',
     font=dict(size=9, color="#6B665E", family="Inter, sans-serif"),
     showarrow=False, xanchor="left", yanchor="top")
-_area_fig.add_annotation(x=2021, y=int(_support_data[_years.index(2021)]),
-    text="<b>Support: 3%</b><br>Most needed. Least resourced.",
-    font=dict(size=10, color="#2E7CB8", family="Inter, sans-serif"),
-    showarrow=True, arrowhead=2, arrowcolor="#2E7CB8", arrowwidth=1.2, ax=90, ay=-55,
-    bgcolor="rgba(255,255,255,0.92)", bordercolor="rgba(46,124,184,0.35)", borderwidth=1, borderpad=6)
+# Support annotation: anchor to the latest year with data
+_support_anno_year = _years[-2] if len(_years) >= 2 else _years[-1]
+_support_anno_val  = _support_data[_years.index(_support_anno_year)]
+
+_area_fig.add_annotation(
+    x=2024, y=100, 
+    text=f"<b>Support: {_pct_s}%</b><br>Most needed. Least resourced.",
+    font=dict(size=9, color="#2E7CB8", family="Inter, sans-serif"),
+    showarrow=True, 
+    arrowhead=2, 
+    arrowcolor="#2E7CB8", 
+    arrowwidth=1.2, 
+    ax=-90, ay=-80, 
+    bgcolor="rgba(255,255,255,0.92)", 
+    bordercolor="rgba(46,124,184,0.35)", 
+    borderwidth=1, 
+    borderpad=4
+)
+
 _area_fig.update_layout(
-    paper_bgcolor="#FFFFFF", plot_bgcolor="#FBF9F5",
-    height=430, margin=dict(l=65, r=25, t=25, b=55), hovermode="x unified",
+    paper_bgcolor="#FFFFFF", 
+    plot_bgcolor="#FBF9F5",
+    height=430, 
+    margin=dict(l=50, r=15, t=15, b=45), 
+    hovermode="x unified",
     hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#E5E1DA",
                     font=dict(size=11, color="#2A2722", family="Inter, sans-serif")),
     legend=dict(orientation="h", y=1.03, x=0.99, xanchor="right", yanchor="bottom",
                 font=dict(size=11, color="#6B665E", family="Inter, sans-serif"),
                 bgcolor="rgba(0,0,0,0)", bordercolor="rgba(0,0,0,0)", traceorder="reversed"),
-    xaxis=dict(tickmode="linear", dtick=2, tickfont=dict(size=11, color="#8A847B"),
-               gridcolor="#ECE8E1", linecolor="#E5E1DA", zeroline=False),
-    yaxis=dict(title=dict(text="ES-linked publications per year (simulated)",
-                          font=dict(size=11, color="#8A847B")),
-               tickfont=dict(size=11, color="#8A847B"), tickformat=",",
-               gridcolor="#ECE8E1", linecolor="#E5E1DA", zeroline=False))
+    xaxis=dict(
+        tickmode="array",
+        tickvals=[2004, 2006, 2008, 2010, 2012, 2014, 2016, 2018, 2020, 2022, 2024, 2025],
+        range=[2004, 2025], 
+        tickfont=dict(size=11, color="#8A847B"),
+        gridcolor="#ECE8E1", 
+        linecolor="#E5E1DA", 
+        zeroline=False
+    ),
+    yaxis=dict(
+        title=dict(text="ES-linked publications per year",
+                   font=dict(size=11, color="#8A847B")),
+        tickfont=dict(size=11, color="#8A847B"), 
+        tickformat=",",
+        gridcolor="#ECE8E1", 
+        linecolor="#E5E1DA", 
+        zeroline=False
+    )
+)
 st.plotly_chart(_area_fig, use_container_width=True, config={"displayModeBar": False})
 st.markdown("""
 <p style="font:300 .68rem/1.7 'Inter',sans-serif;color:#B8B0A4;margin-top:.6rem;padding-left:2px;">
-    Annual counts modelled from cumulative totals in Jacobs et al. (2025).
-    Category proportions — Replace 58%, Enhance 39%, Support 3% — drawn directly from published findings.
-    Year-to-year noise (±6%) is simulated for illustration.
+    Annual counts derived from GPT-4.1 classification of the full corpus.
+    Each paper is assigned to one of three design paradigms (Replace / Enhance / Support)
+    as defined in Jacobs et al. (2025).
     <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#9A938A;">
         Read the full paper →</a>
 </p>
@@ -1010,7 +1107,7 @@ st.markdown("""
 
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 2 · The Gap Map  (bar chart REMOVED → now in Sandbox)
+# SECTION 2 · The Gap Map  
 # ════════════════════════════════════════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-gap" class="sec-anchor"></div>', unsafe_allow_html=True)
@@ -1238,6 +1335,8 @@ st.markdown("""
     <div class="gap-sub">Responsible for 75% of global food crop varieties.
         RoboBee can physically pollinate — but cannot replace a bee's role in the food chain above it.</div>
     <div class="gap-ratio"><b>1 paper</b> for every 31 in Biochemicals</div>
+    <a href="/explorer?service=Pollination" target="_blank"
+       style="display:block;margin-top:.6rem;font:500 .68rem/1 'Inter',sans-serif;color:#356B49;text-decoration:none;">View these 355 papers →</a>
   </div>
   <div class="gap-card critical">
     <span class="gap-icon">🔄</span>
@@ -1246,6 +1345,8 @@ st.markdown("""
     <div class="gap-sub">The movement of nitrogen, phosphorus, and carbon through living systems.
         The rarest research topic in the entire 31,559-paper corpus.</div>
     <div class="gap-ratio"><b>1 paper</b> for every 191 in Biochemicals</div>
+    <a href="/explorer?service=Nutrient%20Cycling" target="_blank"
+       style="display:block;margin-top:.6rem;font:500 .68rem/1 'Inter',sans-serif;color:#356B49;text-decoration:none;">View these 58 papers →</a>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1254,7 +1355,7 @@ st.markdown("""
 st.markdown("""
 <p style="font:300 .74rem/1.7 'Inter',sans-serif;color:#9A938A;margin-top:.4rem;padding-left:2px;">
     Want the exact numbers for all 22 services, sorted and filterable?
-    <a href="/explorer" target="_blank" style="color:#356B49;font-weight:500;">Open the Data Explorer ↗</a>
+    <a href="/explorer?paradigm=Replace,Enhance,Support" target="_blank" style="color:#356B49;font-weight:500;">Open the Data Explorer ↗</a>
     &nbsp;·&nbsp;
     <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#9A938A;">
         Read the full paper →</a>
@@ -1263,7 +1364,7 @@ st.markdown("""
 
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 2.5 · Nature's Voice (The Engineering-Grade Timeline Engine)
+# SECTION 2.5 · Nature's Voice 
 # ════════════════════════════════════════════════════════════════
 
 _voice_cutscene_html = """
@@ -1302,8 +1403,10 @@ _voice_cutscene_html = """
           
           .nv-l1 { font: italic 400 3.2rem/1.2 'Playfair Display', serif; color: #FFFFFF; margin-bottom: 2rem; }
           .nv-l2 { font: 300 1.1rem/1.6 'Inter', sans-serif; color: #8A847B; }
-          .nv-l3 { font: 300 1.1rem/1.6 'Inter', sans-serif; color: #8A847B; margin-bottom: 3rem; }
+          .nv-l3 { font: 300 1.1rem/1.6 'Inter', sans-serif; color: #8A847B; margin-bottom: 0.6rem; }
           .nv-l3 b { color: #E0C589; font-weight: 500; font-size: 1.3rem; }
+          .nv-l3b { font: italic 300 0.95rem/1.6 'Inter', sans-serif; color: #6B665E; margin-bottom: 3rem; }
+          .nv-l3b b { color: #E0C589; font-weight: 500; }
           .nv-l4 { font: 400 1.6rem/1.4 'Playfair Display', serif; color: #85C29C; }
           
           .nv-skip { position: absolute; bottom: 40px; font: 400 .75rem/1 'Inter', sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #555; animation: nv-pulse 3s infinite ease-in-out; }
@@ -1373,6 +1476,7 @@ _voice_cutscene_html = """
           <div class="nv-line nv-l1">"I am Pollination."</div>
           <div class="nv-line nv-l2">You wrote 11,079 papers about biochemicals.</div>
           <div class="nv-line nv-l3">You wrote <b>355</b> about me.</div>
+          <div class="nv-line nv-l3b">For every <b>1</b> paper about me &mdash; <b>31</b> about biochemicals.</div>
           <div class="nv-line nv-l4">With me, one-third of your world blossoms.</div>
         </div>
         <div class="nv-skip">Click anywhere to continue</div>
@@ -1420,9 +1524,10 @@ _voice_cutscene_html = """
         line1: 1400,         
         line2: 2600,         
         line3: 3800,         
-        line4: 5200,         // "One-third of your world blossoms"
+        line3b: 5000,        // Aftershock: the 1-for-31 ratio
+        line4: 6400,         // "One-third of your world blossoms"
 
-        bloom: 6500,         // Stage 4: Climax (turns green + blooms + smiles)
+        bloom: 7700,         // Stage 4: Climax (turns green + blooms + smiles)
         // Stage 5: held indefinitely — dismissed only by click (see above).
       };
 
@@ -1438,6 +1543,7 @@ _voice_cutscene_html = """
       schedule(function() { ov.querySelector('.nv-l1').classList.add('visible'); }, T.line1);
       schedule(function() { ov.querySelector('.nv-l2').classList.add('visible'); }, T.line2);
       schedule(function() { ov.querySelector('.nv-l3').classList.add('visible'); }, T.line3);
+      schedule(function() { ov.querySelector('.nv-l3b').classList.add('visible'); }, T.line3b);
       schedule(function() { ov.querySelector('.nv-l4').classList.add('visible'); }, T.line4);
 
       // Scene 4: Nature's awakening (Background colors, flower blooms, smile appears)
@@ -1800,23 +1906,31 @@ st.plotly_chart(_sankey4, use_container_width=True, config={"displayModeBar": Fa
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Global reach — who can access replacement technologies?</div>',
             unsafe_allow_html=True)
-credibility_badge(has_real=False, has_sim=True)
+credibility_badge(has_real=True, has_sim=False)
+
 st.markdown("""
-<p class="chart-sub-label">
-    Bubble size = volume of Replace-oriented bio-inspired publications.
-    Colour = open-access rate (green = freely available; red = paywalled).
-    The countries producing the most replacement technologies
-    are also the ones most likely to lock them behind patents and paywalls.
-</p>
+<div style="margin-bottom: 1rem;">
+    <p style="font: 300 0.75rem 'Inter', sans-serif; color: #8A847B; margin: 0 0 0.8rem 0; letter-spacing: 0.02em;">
+         <strong>Bubble size</strong> = volume of Replace papers &nbsp;&nbsp;|&nbsp;&nbsp; 
+         <strong>Colour</strong> = open-access rate (green = free, red = paywalled)
+    </p>
+    <div style="background-color: #FAF8F5; border-left: 3px solid #A33216; padding: 0.8rem 1rem; border-radius: 4px;">
+        <p style="font: 400 0.8rem/1.5 'Inter', sans-serif; color: #4A453F; margin: 0;">
+            <strong style="color: #A33216; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; display: block; margin-bottom: 0.2rem;">Key Observation</strong>
+            Despite spanning the Global North/South divide, the world's leading producers of replacement technologies exhibit a shared pattern of low open-access rates, demonstrating that knowledge restriction in high-value paradigms transcends geopolitical categories.
+        </p>
+    </div>
+</div>
 """, unsafe_allow_html=True)
-_MAP_DATA4 = pd.DataFrame({
-    "Country": ["United States","China","Germany","United Kingdom","Canada","Australia",
-                "France","Japan","South Korea","Brazil","India","South Africa",
-                "Mexico","Kenya","Nigeria","Indonesia"],
-    "Region": (["Global North"]*9) + (["Global South"]*7),
-    "Replace_Papers": [5200,4800,2100,1800,1200,850,1550,1320,580,350,720,160,140,32,18,95],
-    "Open_Access_Pct": [28,22,68,72,48,55,62,35,40,82,34,88,78,95,92,86],
+
+# country × open-access data from country_oa.json
+_MAP_DATA4 = pd.DataFrame(COUNTRY_OA["countries"]).rename(columns={
+    "country":         "Country",
+    "region":          "Region",
+    "replace_papers":  "Replace_Papers",
+    "open_access_pct": "Open_Access_Pct",
 })
+
 _map4 = px.scatter_geo(
     _MAP_DATA4, locations="Country", locationmode="country names",
     size="Replace_Papers", color="Open_Access_Pct", hover_name="Country",
@@ -1843,34 +1957,41 @@ st.markdown('<div class="chart-label">The 3% — technologies that chose to supp
             unsafe_allow_html=True)
 
 _SPOTLIGHT4 = [
-    {"icon":"🦪","title":"Living Shoreline Systems","service":"Coastline Regulation · Supporting","n":"~15",
+    {"icon":"🦪","title":"Living Shoreline Systems","service":"Coastline Regulation · Supporting","n":"~10",
+     "link":"/explorer?paradigm=Support&service=Coastline%20Regulation",
      "body":"Bio-inspired breakwater structures modelled on oyster reef geometry to dissipate wave energy "
             "while providing substrate for marine organisms. Unlike concrete seawalls, these structures "
             "<em>support</em> the colonisation and growth of natural reef communities over time — the "
             "technology becomes more effective as nature reclaims it."},
-    {"icon":"🍄","title":"Mycorrhizal Network Inoculants","service":"Primary Production · Supporting","n":"~8",
+    {"icon":"🍄","title":"Mycorrhizal Network Inoculants","service":"Primary Production · Supporting","n":"~11",
+     "link":"/explorer?paradigm=Support&service=Primary%20Production",
      "body":"Fungal network-inspired soil amendments that enhance plant nutrient uptake by inoculating "
             "degraded soils with mycorrhizal consortia. Rather than replacing soil biology, this approach "
             "<em>reactivates</em> dormant underground networks — using the wood-wide web's own logic to "
             "restore carbon sequestration in post-industrial landscapes."},
-    {"icon":"🐝","title":"Pollinator Corridor Mapping","service":"Pollination · Supporting","n":"~20",
+    {"icon":"🐝","title":"Pollinator Corridor Mapping","service":"Pollination · Supporting","n":"~14",
+     "link":"/explorer?paradigm=Support&service=Pollination",
      "body":"Landscape connectivity models derived from bee foraging algorithms to design habitat corridors "
             "that <em>support</em> existing pollinator populations across fragmented agricultural land. "
             "Unlike RoboBees, this technology asks not how to replace bees — but how to make the landscape "
             "legible to them again."},
-    {"icon":"🦫","title":"Beaver-Inspired Wetland Restoration","service":"Water Regulation · Supporting","n":"~12",
+    {"icon":"🦫","title":"Beaver-Inspired Wetland Restoration","service":"Water Regulation · Supporting","n":"~39",
+     "link":"/explorer?paradigm=Support&service=Water%20Regulation",
      "body":"Low-cost structures modelled on beaver dam geometry to slow water flow, raise water tables, and "
             "restore hydrological function in degraded stream systems. Where beaver populations are locally "
             "extinct, these structures <em>hold space</em> for recolonisation — designed to become redundant "
             "once the living engineer returns."},
 ]
-_n_spot = len(_SPOTLIGHT4)
 
+_n_spot = len(_SPOTLIGHT4)
+ 
 # Build slide blocks + dots from the data; switching is handled inside the
 # component by JS, so the arrows live in the SAME card frame as the content.
 _slides_html = ""
+
 for _i, _c in enumerate(_SPOTLIGHT4):
     _hidden = "" if _i == 0 else "hidden"
+
     _slides_html += f"""
       <div class="mc-slide" {_hidden}>
         <div class="mc-head">
@@ -1880,17 +2001,33 @@ for _i, _c in enumerate(_SPOTLIGHT4):
             <div class="mc-service">{_c['service']}</div>
           </div>
         </div>
+
         <div class="mc-body">{_c['body']}</div>
+
         <div class="mc-foot">
-          <div><span class="mc-n">{_c['n']}</span><span class="mc-n-label">papers in corpus</span></div>
-          <span class="mc-badge">Support</span>
+          <div class="mc-foot-left">
+            <span class="mc-n">{_c['n']}</span>
+            <span class="mc-n-label">papers in corpus</span>
+          </div>
+
+          <div class="mc-foot-center">
+            <a class="mc-explore" href="{_c['link']}" target="_blank">
+              Explore papers →
+            </a>
+          </div>
+
+          <div class="mc-foot-right">
+            <span class="mc-badge">Support</span>
+          </div>
         </div>
-      </div>"""
+      </div>
+    """
 
 _dots_html = "".join(
-    f'<span class="mc-dot{" on" if _i == 0 else ""}"></span>' for _i in range(_n_spot)
+    f'<span class="mc-dot{" on" if _i == 0 else ""}></span>'
+    for _i in range(_n_spot)
 )
-
+ 
 _carousel_html = """
 <!DOCTYPE html><html><head>
 <style>
@@ -1926,11 +2063,26 @@ _carousel_html = """
   .mc-body em { color: #356B49; font-style: italic; }
   .mc-foot { display: flex; justify-content: space-between; align-items: center;
              padding-top: .8rem; border-top: 1px solid #E5E1DA; }
+  .mc-foot-left, .mc-foot-center, .mc-foot-right {flex: 1; display: flex; align-items: center;}           
+  .mc-foot-left { justify-content: flex-start; }
+  .mc-foot-center { justify-content: center; }
+  .mc-foot-right { justify-content: flex-end; }
   .mc-n { font: 700 1.3rem/1 'Playfair Display', serif; color: #2E7CB8; }
   .mc-n-label { font: 300 .62rem/1 'Inter', sans-serif; color: #8A847B; margin-left: 6px; }
   .mc-badge { font: 500 .62rem/1 'Inter', sans-serif; letter-spacing: .12em; text-transform: uppercase;
               padding: 3px 9px; border-radius: 20px; background: rgba(46,124,184,0.10);
               color: #246592; border: 1px solid rgba(46,124,184,0.22); }
+    .mc-explore {
+    font: 500 .68rem/1 'Inter', sans-serif; 
+    color: #2E7CB8;                        
+    text-decoration: none;                 
+    transition: color .18s;                
+    display: inline-block;
+  }
+  .mc-explore:hover {
+    color: #1b5380;                         
+    text-decoration: underline;            
+  }
   .mc-dots { text-align: center; margin-top: 1rem; }
   .mc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
             margin: 0 4px; background: #DAD5CC; transition: background .18s; }
@@ -1943,7 +2095,7 @@ _carousel_html = """
   <button class="mc-nav mc-next" onclick="mcMove(1)" aria-label="Next">&rsaquo;</button>
   <div class="mc-slides">__SLIDES__</div>
   <div class="mc-dots">__DOTS__</div>
-  <div class="mc-counter"><span id="mcCur">1</span> of __N__ &nbsp;&middot;&nbsp; use &lsaquo; &rsaquo; to browse</div>
+  <div class="mc-counter"><span id="mcCur">1</span> of __N__ &nbsp;</div>
 </div>
 <script>
   var mcI = 0;
@@ -1965,17 +2117,10 @@ _carousel_html = (_carousel_html
                   .replace("__N__", str(_n_spot)))
 components.html(_carousel_html, height=320)
 
-st.markdown("""
-<p style="font:300 .68rem/1.7 'Inter',sans-serif;color:#B8B0A4;margin-top:1rem;padding-left:2px;">
-    Sankey flow values proportional to published findings in Jacobs et al. (2025).
-    Scenario values are illustrative. Global map data is simulated.
-    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#9A938A;">
-        Read the full paper →</a>
-</p>
-""", unsafe_allow_html=True)
+
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 5 · You Belong Here   (unchanged)
+# SECTION 5 · You Belong Here  
 # ════════════════════════════════════════════════════════════════
 # section_sep()
 st.markdown('<div id="sec-belong" class="sec-anchor"></div>', unsafe_allow_html=True)
@@ -2141,6 +2286,7 @@ _RESPONSES5 = {
                   ("Learning from each other", "https://www.manufacturedecosystems.com/home/learning-from-each-other")],
     },
 }
+
 if st.session_state.identity and st.session_state.identity in _RESPONSES5:
     _resp5 = _RESPONSES5[st.session_state.identity]
     _links5 = "".join(f'<a class="r-btn" href="{_url}" target="_blank">{_lbl}</a>'
