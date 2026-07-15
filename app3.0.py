@@ -28,7 +28,7 @@ st.set_page_config(
 )
 
 # ════════════════════════════════════════════════════════════════
-# GLOBAL CSS  (light theme)
+# GLOBAL CSS
 # ════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
@@ -253,8 +253,6 @@ div[data-testid="stRadio"] > div { gap: 1rem; }
 .radial-info-body .ib-re { color: #A8740E; font-weight: 500; }
 
 .scenario-callout b { color: #356B49; font-weight: 500; }
-
-
 
 /* ── Section 2: Gap cards ────────────────────────────────── */
 .gap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1.4rem 0; }
@@ -1150,45 +1148,43 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-# ── Radial coverage chart (replaces the treemap) ─────────────
-# Nightingale "area logic": each spoke's length is the SQRT of its paper count,
-# so an 11,079-paper field doesn't make a 58-paper field vanish. Each spoke is
-# split into three stacked bands (Support inner · Enhance mid · Replace outer)
-# by that service's R/E/S share. Services with 0 papers leave a visible gap.
+
+# ── Radial coverage chart ───────────────────────────────────── 
 _CAT_ORDER2 = ["Provisioning", "Regulating", "Supporting", "Cultural"]
 _R_COL2 = {"support": "rgba(46,124,184,0.85)",
            "enhance": "rgba(29,140,105,0.82)",
            "replace": "rgba(168,116,14,0.85)"}
-
-# Group by category, then largest→smallest within each group (empties land last).
+ 
+# Sort: group by category, then largest→smallest within each group.
 _ord2 = pd.concat(
-    [_df2[_df2["category"] == _c].sort_values("total", ascending=False) for _c in _CAT_ORDER2]
+    [_df2[_df2["category"] == _c].sort_values("total", ascending=False)
+     for _c in _CAT_ORDER2]
 ).reset_index(drop=True)
-
+ 
 _GROUP_GAP2 = 7.0
 _n2 = len(_ord2)
-
-# The 2 zero-paper services draw no bar at all, so they don't need a full
-# slot — give them a narrow "marker" slot just wide enough for their dashed
-# connector line, and hand the freed angle to the 20 real services. This
-# shrinks the dead arc near "Spiritual & Cultural Identity" and makes every
-# real spoke slightly wider/denser, so the ring reads as fuller overall.
 _EMPTY_SLOT2 = 5.0
 _n_empty2 = int((_ord2["total"] == 0).sum())
 _n_real2 = _n2 - _n_empty2
 _avail2 = 360 - len(_CAT_ORDER2) * _GROUP_GAP2 - _n_empty2 * _EMPTY_SLOT2
 _slot_real2 = _avail2 / _n_real2
 _wid2 = _slot_real2 * 0.86
-
-_thetas2, _cur2, _prev2 = [], 0.0, None
-for _, _r in _ord2.iterrows():
-    if _r["category"] != _prev2:
+ 
+# Compute angular position (theta) for each spoke.
+_thetas2, _cur2, _prev_cat2 = [], 0.0, None
+# Also track the angular range of each category for outer arc labels.
+_cat_start2, _cat_end2 = {}, {}
+for _i2, (_, _r) in enumerate(_ord2.iterrows()):
+    if _r["category"] != _prev_cat2:
         _cur2 += _GROUP_GAP2
-    _this_slot2 = _EMPTY_SLOT2 if _r["total"] == 0 else _slot_real2
-    _thetas2.append(_cur2 + _this_slot2 / 2)
-    _cur2 += _this_slot2
-    _prev2 = _r["category"]
-
+        _cat_start2[_r["category"]] = _cur2
+    _this_slot = _EMPTY_SLOT2 if _r["total"] == 0 else _slot_real2
+    _thetas2.append(_cur2 + _this_slot / 2)
+    _cur2 += _this_slot
+    _cat_end2[_r["category"]] = _cur2
+    _prev_cat2 = _r["category"]
+ 
+# Compute stacked bar heights (sqrt-scaled, split by R/E/S share).
 _sup2, _enh2, _rep2 = [], [], []
 for _, _r in _ord2.iterrows():
     _t = _r["total"]
@@ -1202,128 +1198,179 @@ for _, _r in _ord2.iterrows():
 _base_e2 = _sup2
 _base_r2 = [_s + _e for _s, _e in zip(_sup2, _enh2)]
 _maxr2 = _df2["total"].max() ** 0.5
-
-_cd2 = _ord2[["service", "replace", "enhance", "support", "total"]].values.tolist()
-_HOV2 = ("<b>%{customdata[0]}</b><br>Total: %{customdata[4]:,} papers<br>"
-         "Replace: %{customdata[1]:,}<br>Enhance: %{customdata[2]:,}<br>"
-         "Support: %{customdata[3]:,}<extra></extra>")
-
+ 
+# Custom data for hover tooltips (service, R, E, S, total, pct each).
+_cd2 = []
+for _, _r in _ord2.iterrows():
+    _t = _r["total"]
+    _rp = _r["replace"] / _t if _t else 0
+    _ep = _r["enhance"] / _t if _t else 0
+    _sp = _r["support"] / _t if _t else 0
+    _cd2.append([_r["service"], _r["replace"], _r["enhance"],
+                 _r["support"], _r["total"], _rp, _ep, _sp])
+ 
+_HOV2 = (
+    "<b>%{customdata[0]}</b><br>"
+    "<span style='color:#7A746B'>%{customdata[4]:,} papers</span>"
+    "<br><br>"
+    "Replace %{customdata[1]:,} (%{customdata[5]:.0%})<br>"
+    "Enhance %{customdata[2]:,} (%{customdata[6]:.0%})<br>"
+    "Support %{customdata[3]:,} (%{customdata[7]:.0%})"
+    "<extra></extra>"
+)
+ 
+# ── Build the figure ──────────────────────────────────────────
 _radial = go.Figure()
+ 
+# Three stacked bands: Support (inner) → Enhance → Replace (outer).
 _radial.add_trace(go.Barpolar(
-    r=_sup2, theta=_thetas2, base=[0] * _n2, width=[_wid2] * _n2, name="Support",
-    marker=dict(color=_R_COL2["support"], line=dict(color="#FFFFFF", width=0.5)),
+    r=_sup2, theta=_thetas2, base=[0] * _n2, width=[_wid2] * _n2,
+    name="Support", marker=dict(color=_R_COL2["support"],
+    line=dict(color="#FFFFFF", width=0.5)),
     customdata=_cd2, hovertemplate=_HOV2))
 _radial.add_trace(go.Barpolar(
-    r=_enh2, theta=_thetas2, base=_base_e2, width=[_wid2] * _n2, name="Enhance",
-    marker=dict(color=_R_COL2["enhance"], line=dict(color="#FFFFFF", width=0.5)),
+    r=_enh2, theta=_thetas2, base=_base_e2, width=[_wid2] * _n2,
+    name="Enhance", marker=dict(color=_R_COL2["enhance"],
+    line=dict(color="#FFFFFF", width=0.5)),
     customdata=_cd2, hovertemplate=_HOV2))
 _radial.add_trace(go.Barpolar(
-    r=_rep2, theta=_thetas2, base=_base_r2, width=[_wid2] * _n2, name="Replace",
-    marker=dict(color=_R_COL2["replace"], line=dict(color="#FFFFFF", width=0.5)),
+    r=_rep2, theta=_thetas2, base=_base_r2, width=[_wid2] * _n2,
+    name="Replace", marker=dict(color=_R_COL2["replace"],
+    line=dict(color="#FFFFFF", width=0.5)),
     customdata=_cd2, hovertemplate=_HOV2))
-
-# ── Donut geometry via a negative radial floor ──────────────────────
-_HOLE2 = 0.38
-_R2 = _maxr2 * 1.05                        # outer bound — range ≈ 1.05× the max spoke
-_H2 = _R2 * _HOLE2 / (1 - _HOLE2)          # inner floor so r=0 lands at the hole edge
-
-_cat_theta2 = {}
-for _c in _CAT_ORDER2:
-    _idx2 = [i for i, (_, _r) in enumerate(_ord2.iterrows()) if _r["category"] == _c]
-    _cat_theta2[_c] = sum(_thetas2[i] for i in _idx2) / len(_idx2)
+ 
+# ── Donut geometry ────────────────────────────────────────────
+_HOLE2 = 0.45
+_R2 = _maxr2 * 1.05
+_H2 = _R2 * _HOLE2 / (1 - _HOLE2)
+_R2_outer = _R2 * 1.22   # extended range for outer labels
+ 
+# ── Center text ───────────────────────────────────────────────
 _radial.add_trace(go.Scatterpolar(
-    r=[-_H2 * 0.55] * len(_CAT_ORDER2),
-    theta=[_cat_theta2[_c] for _c in _CAT_ORDER2], mode="text",
-    text=[_c.upper() for _c in _CAT_ORDER2],
-    textfont=dict(size=12, color="#ADA89E", family="Inter, sans-serif"),
+    r=[-_H2 * 0.55], theta=[0], mode="text",
+    text=["22\nEcosystem\nServices"],
+    textfont=dict(size=18, color="#2A2722", family="Playfair Display"),
     hoverinfo="skip", showlegend=False))
-
-_empty2 = [i for i, (_, _r) in enumerate(_ord2.iterrows()) if _r["total"] == 0]
-
+ 
+# ── Outer category arc labels ─────────────────────────────────
+# Subtle labels at the outer edge marking each of the four families.
+_CAT_PRETTY2 = {"Provisioning": "PROVISIONING", "Regulating": "REGULATING",
+                "Supporting": "SUPPORTING", "Cultural": "CULTURAL"}
+_CAT_COLOR2 = {"Provisioning": "#8A847B", "Regulating": "#8A847B",
+               "Supporting": "#8A847B", "Cultural": "#8A847B"}
+for _c in _CAT_ORDER2:
+    _arc_mid = (_cat_start2[_c] + _cat_end2[_c]) / 2
+    _radial.add_trace(go.Scatterpolar(
+        r=[_R2 * 1.14], theta=[_arc_mid], mode="text",
+        text=[_CAT_PRETTY2[_c]],
+        textfont=dict(size=8.5, color=_CAT_COLOR2[_c],
+                      family="Inter, sans-serif"),
+        hoverinfo="skip", showlegend=False))
+ 
+# ── D1: Outer labels for top-3 and bottom-3 services ─────────
+# Readers see the extremes at a glance; everything else on hover.
+_nonzero2 = [(i, _ord2.iloc[i]) for i in range(len(_ord2))
+             if _ord2.iloc[i]["total"] > 0]
+_sorted2 = sorted(_nonzero2, key=lambda x: x[1]["total"], reverse=True)
+_top3_idx2 = {x[0] for x in _sorted2[:3]}
+_bot3_idx2 = {x[0] for x in _sorted2[-3:]}
+ 
+for _li in (_top3_idx2 | _bot3_idx2):
+    _lr = _ord2.iloc[_li]
+    _l_height = _lr["total"] ** 0.5
+    _l_r = _l_height + _maxr2 * 0.10
+    _l_theta = _thetas2[_li]
+    _l_tpos = "middle left" if _l_theta < 180 else "middle right"
+    _l_name = display_name(_lr["service"])
+    _l_count = f"{_lr['total']:,}"
+    _l_color = "#4A453E" if _li in _top3_idx2 else "#8A847B"
+    _radial.add_trace(go.Scatterpolar(
+        r=[_l_r], theta=[_l_theta], mode="text",
+        text=[f"{_l_name}  ({_l_count})"],
+        textposition=_l_tpos,
+        textfont=dict(size=9, color=_l_color, family="Inter, sans-serif"),
+        hoverinfo="skip", showlegend=False))
+ 
+# ── Empty-spoke markers (zero-paper services) ────────────────
+_empty2 = [i for i, (_, _r) in enumerate(_ord2.iterrows())
+           if _r["total"] == 0]
+ 
 for _idx, _ei2 in enumerate(_empty2):
-    _real_service_name = _ord2.iloc[_ei2]["service"]
-    
+    _es_name = display_name(_ord2.iloc[_ei2]["service"])
     _radial.add_trace(go.Scatterpolar(
         r=[0, _R2 * 0.32], theta=[_thetas2[_ei2]] * 2, mode="lines",
         line=dict(color="rgba(176,90,46,0.35)", width=1, dash="dot"),
         hoverinfo="skip", showlegend=False))
-        
-    _staggered_r = -_H2 * (0.15 + (_idx % 2) * 0.25)
-    
+    _stag_r = -_H2 * (0.15 + (_idx % 2) * 0.25)
     _radial.add_trace(go.Scatterpolar(
-        r=[_staggered_r],  
-        theta=[_thetas2[_ei2]], 
-        mode="text",
-        marker=dict(size=4, color="#B05A2E", symbol="circle-open"),
-        text=[f"{_real_service_name}"], # 👈 使用真实名称
+        r=[_stag_r], theta=[_thetas2[_ei2]], mode="text",
+        text=[f"{_es_name}\n0 papers"],
         textposition="middle right" if _thetas2[_ei2] < 180 else "middle left",
-        textfont=dict(size=9.5, color="#B05A2E", family="Inter, sans-serif"),
+        textfont=dict(size=9, color="#A8704B", family="Inter, sans-serif"),
         hoverinfo="skip", showlegend=False))
-
+ 
+# ── Layout ────────────────────────────────────────────────────
 _radial.update_layout(
     polar=dict(
         bgcolor="#FFFFFF", domain=dict(x=[0, 1], y=[0, 1]),
-        radialaxis=dict(visible=False, range=[-_H2, _R2]),
+        radialaxis=dict(visible=False, range=[-_H2, _R2_outer]),
         angularaxis=dict(visible=False, rotation=90, direction="clockwise"),
     ),
-    paper_bgcolor="#FFFFFF", height=550, margin=dict(l=10, r=10, t=10, b=10),
+    paper_bgcolor="#FFFFFF", height=500,
+    margin=dict(l=0, r=0, t=0, b=0),
     showlegend=False,
     hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#E5E1DA",
-                    font=dict(size=11, color="#2A2722", family="Inter, sans-serif")),
+                    font=dict(size=11, color="#2A2722",
+                              family="Inter, sans-serif")),
 )
 
-# ── Chart + side info panel, side by side ────────────────────────
-st.markdown('<div class="chart-label">Coverage across all 22 ecosystem services</div>',
-            unsafe_allow_html=True)
-credibility_badge(has_real=True, has_sim=True)
-
-_chart_col2, _info_col2 = st.columns([2.1, 1], gap="large")
+ 
+# ── Display: chart + side info panel ──────────────────────────
+st.markdown(
+    '<div class="chart-label">Coverage across all 22 ecosystem services</div>',
+    unsafe_allow_html=True)
+credibility_badge(has_real=True, has_sim=False)
+ 
+_chart_col2, _info_col2 = st.columns([2.2, 1], gap="large")
 with _chart_col2:
-    st.plotly_chart(_radial, use_container_width=True, config={"displayModeBar": False})
-
-    st.markdown("""
-    <div style="display:flex; justify-content:center; gap:28px; margin-top:.3rem;
-                font:400 .78rem/1 'Inter',sans-serif; color:#6B665E;">
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:11px;height:11px;border-radius:2px;background:#2E7CB8;display:inline-block;"></span>
-        Support
-      </span>
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:11px;height:11px;border-radius:2px;background:#1D8C69;display:inline-block;"></span>
-        Enhance
-      </span>
-      <span style="display:inline-flex;align-items:center;gap:6px;">
-        <span style="width:11px;height:11px;border-radius:2px;background:#A8740E;display:inline-block;"></span>
-        Replace
-      </span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.plotly_chart(_radial, use_container_width=True,
+                    config={"displayModeBar": False})
+ 
 with _info_col2:
     st.markdown("""
-    <div class="radial-info-card">
-        <div class="radial-info-title">How to read this chart</div>
-        <div class="radial-info-body">
-            Each spoke is one ecosystem service, grouped into the four families
-            named inside the ring. Spoke length follows the
-            <b>square root</b> of its paper count — Nightingale's area logic —
-            so a field with 11,079 papers doesn't make one with 58 vanish.
-            Each spoke splits into three bands: <span class="ib-su">Support</span>,
-            <span class="ib-en">Enhance</span>, and <span class="ib-re">Replace</span>,
-            by that service's share of each. A missing spoke means zero papers —
-            the small dashed gap near the top is
-            <b>Spiritual &amp; Cultural Identity</b>.
-        </div>
-    </div>
-    <div class="radial-info-card insight">
-        <div class="radial-info-title">Key insight</div>
-        <div class="radial-info-body">
-            Pollination, soil formation, and nutrient cycling collectively
-            underpin global food security. Together they account for just
-            <b>796 papers</b> — about <b>7%</b> of what a single service
-            (Biochemicals) has attracted.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+<div class="radial-side">
+<div class="radial-info-card" style="margin-bottom: 1.5rem;">
+<div class="radial-info-title" style="margin-bottom: 0.6rem;">How to read this chart</div>
+<div class="radial-info-body" style="line-height: 1.6;">
+<div style="margin-bottom: 0.8rem;">
+&bull; Each spoke is one ecosystem service, grouped into four families.
+</div>
+<div style="margin-bottom: 0.8rem;">
+&bull; Spoke length follows the <b>square root</b> of paper count. 
+</div>
+<div style="margin-bottom: 0.6rem;">
+&bull; Colours show each service's paradigm mix:
+<span class="ib-su">Support</span>,
+<span class="ib-en">Enhance</span>,
+<span class="ib-re">Replace</span>.
+</div>
+<div style="margin-bottom: 0.8rem;">
+&bull; Missing spokes &mdash; marked by a dashed line &mdash; indicate zero published papers.
+</div>
+</div>
+</div>
+
+<div class="radial-info-card insight">
+<div class="radial-info-title" style="margin-bottom: 0.6rem;">Key insight</div>
+<div class="radial-info-body" style="line-height: 1.6;">
+Pollination, soil formation, and nutrient cycling collectively
+underpin global food security. Together they account for just
+<b>796 papers</b> &mdash; about <b>7%</b> of what a single
+service (Biochemicals) has attracted.
+</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">The critical gap — food system services</div>',
