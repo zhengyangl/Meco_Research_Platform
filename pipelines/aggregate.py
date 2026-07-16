@@ -90,9 +90,7 @@ conn = psycopg2.connect(DB_URI)
 # ════════════════════════════════════════════════════════════════
 # STEP 1 corpus_meta.json — top-level funnel
 # ════════════════════════════════════════════════════════════════
- 
-# All three numbers come from a single query so they are guaranteed
-# to be consistent with each other (no race between separate queries).
+
 meta_sql = """
 SELECT
     COUNT(*)                                                       AS total_papers,
@@ -225,6 +223,206 @@ print(f"  Paradigms — Replace: {paradigm_totals['replace']:,}  "
       f"Enhance: {paradigm_totals['enhance']:,}  Support: {paradigm_totals['support']:,}")
 
 
+# ════════════════════════════════════════════════════════════════
+# STEP 2.5 annual_by_category.json — year × R/E/S for the narrative
+# ════════════════════════════════════════════════════════════════
+# One row per (pub_year, category) with non-review Decision=Y papers only.
+# The narrative's stacked-area chart reads this.
+
+annual_sql = """
+SELECT
+    p.pub_year,
+    c.category,
+    COUNT(*) AS n
+FROM papers p
+JOIN classifications c ON p.wos_id = c.wos_id
+WHERE p.is_review = FALSE
+  AND c.is_current = TRUE
+  AND c.decision = 'Y'
+  AND c.ecosystem_service = ANY(%s)
+  AND p.pub_year IS NOT NULL
+GROUP BY p.pub_year, c.category
+ORDER BY p.pub_year, c.category
+"""
+annual_raw = pd.read_sql(annual_sql, conn, params=(list(VALID_SERVICES),))
+
+# Pivot: rows = year, columns = Replace/Enhance/Support
+annual_pivot = annual_raw.pivot_table(
+    index="pub_year", columns="category", values="n",
+    aggfunc="sum", fill_value=0,
+).rename_axis(columns=None)
+for col in ("Replace", "Enhance", "Support"):
+    if col not in annual_pivot.columns:
+        annual_pivot[col] = 0
+
+annual_data = {
+    "years":   [int(y) for y in annual_pivot.index],
+    "replace": [int(x) for x in annual_pivot["Replace"]],
+    "enhance": [int(x) for x in annual_pivot["Enhance"]],
+    "support": [int(x) for x in annual_pivot["Support"]],
+    "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+}
+write_json(OUTPUT_DIR / "annual_by_category.json", annual_data)
+print(f"  Years: {annual_data['years'][0]}–{annual_data['years'][-1]}  "
+      f"({len(annual_data['years'])} years)")
+
+# ════════════════════════════════════════════════════════════════
+# STEP 2.6 country_oa.json — country × open-access for the map
+# ════════════════════════════════════════════════════════════════
+# For each country, aggregate Replace-oriented papers only:
+#   • bubble size = # Replace papers with a first-author from that country
+#   • colour      = % of those papers that are open access (open_access != 'Closed')
+# The narrative's accessibility map reads this.
+
+country_sql = """
+SELECT
+    (SELECT pf.feature_val
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'country_first'
+       AND pf.is_current  = TRUE
+     LIMIT 1) AS country_first,
+    p.open_access
+FROM papers p
+JOIN classifications c ON p.wos_id = c.wos_id
+WHERE p.is_review = FALSE
+  AND c.is_current = TRUE
+  AND c.decision = 'Y'
+  AND c.ecosystem_service = ANY(%s)
+  AND c.category = 'Replace'
+"""
+country_raw = pd.read_sql(country_sql, conn, params=(list(VALID_SERVICES),))
+country_raw = country_raw.dropna(subset=["country_first"])
+
+# is_open: True when open_access has a non-null value other than 'Closed'
+country_raw["is_open"] = (
+    country_raw["open_access"].notna() & (country_raw["open_access"] != "Closed")
+)
+
+# Aggregate per country, then keep top 25 by Replace paper count —
+# past that the bubble map gets crowded and unreadable.
+country_agg = country_raw.groupby("country_first").agg(
+    replace_papers=("is_open", "size"),
+    open_papers=("is_open", "sum"),
+).reset_index()
+country_agg["open_access_pct"] = (
+    country_agg["open_papers"] / country_agg["replace_papers"] * 100
+).round(1)
+country_agg = country_agg.sort_values("replace_papers", ascending=False).head(25)
+
+# Global North / Global South split (traditional UN M49). WoS country_first
+# values not listed here default to "Global South", which is the safer bias
+# for coverage of newly emerging producers.
+GLOBAL_NORTH = {
+    "USA", "United States", "United States of America",
+    "Canada",
+    "United Kingdom", "England", "Scotland", "Wales", "Northern Ireland",
+    "Germany", "France", "Italy", "Spain", "Netherlands", "Belgium", "Portugal",
+    "Switzerland", "Austria", "Sweden", "Norway", "Denmark", "Finland", "Iceland",
+    "Ireland", "Greece", "Luxembourg",
+    "Poland", "Czech Republic", "Czechia", "Slovakia", "Hungary", "Slovenia",
+    "Croatia", "Estonia", "Latvia", "Lithuania",
+    "Australia", "New Zealand",
+    "Japan", "South Korea", "Republic of Korea",
+    "Israel", "Singapore",
+}
+
+country_list = []
+for _, r in country_agg.iterrows():
+    country_list.append({
+        "country":         r["country_first"],
+        "region":          "Global North" if r["country_first"] in GLOBAL_NORTH else "Global South",
+        "replace_papers":  int(r["replace_papers"]),
+        "open_access_pct": float(r["open_access_pct"]),
+    })
+
+country_oa = {
+    "countries":    country_list,
+    "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+}
+write_json(OUTPUT_DIR / "country_oa.json", country_oa)
+print(f"  Countries: {len(country_list)} (top-25 by Replace papers)")
+
+# ════════════════════════════════════════════════════════════════
+# STEP 2.7 support_spotlight.json — top-cited Support paper per curated service
+# ════════════════════════════════════════════════════════════════
+# The narrative's "3% spotlight" showcases four hand-picked Support-oriented
+# services. For each, we surface (a) the total Support-paper count in that
+# service and (b) the single most-cited Support paper. The narrative side
+# supplies editorial framing (icon, curated title, body); 
+
+SPOTLIGHT_SERVICES = [
+    "Coastline Regulation",
+    "Primary Production",
+    "Pollination",
+    "Water Regulation",
+]
+
+# ROW_NUMBER() partitioned by service picks the top-cited paper per service;
+# tie-breaker is more recent publication year.
+spotlight_sql = """
+SELECT * FROM (
+    SELECT
+        c.ecosystem_service,
+        COUNT(*) OVER (PARTITION BY c.ecosystem_service) AS n_in_service,
+        p.wos_id, p.title, p.doi, p.pub_year, p.times_cited, p.authors,
+        ROW_NUMBER() OVER (
+            PARTITION BY c.ecosystem_service
+            ORDER BY p.times_cited DESC NULLS LAST, p.pub_year DESC NULLS LAST
+        ) AS rk
+    FROM papers p
+    JOIN classifications c ON p.wos_id = c.wos_id
+    WHERE p.is_review = FALSE
+      AND c.is_current = TRUE
+      AND c.decision = 'Y'
+      AND c.category = 'Support'
+      AND c.ecosystem_service = ANY(%s)
+      AND p.title IS NOT NULL
+) t
+WHERE rk = 1
+"""
+spot_top = pd.read_sql(spotlight_sql, conn, params=(SPOTLIGHT_SERVICES,))
+
+def _first_author(authors_val):
+    """Best-effort first-author extraction from a WoS authors field."""
+    if pd.isna(authors_val) or not authors_val:
+        return ""
+    # WoS `authors` fields are typically pipe- or semicolon-separated; take
+    # whatever comes before the first delimiter.
+    for sep in (";", "|"):
+        if sep in authors_val:
+            first = authors_val.split(sep)[0].strip()
+            return first
+    return authors_val.strip()
+
+spotlight_list = []
+for svc in SPOTLIGHT_SERVICES:
+    match = spot_top[spot_top["ecosystem_service"] == svc]
+    if match.empty:
+        print(f"No Support papers found for '{svc}' — skipping")
+        continue
+    row = match.iloc[0]
+    spotlight_list.append({
+        "service":  svc,
+        "n_papers": int(row["n_in_service"]),
+        "top_paper": {
+            "wos_id":       row["wos_id"],
+            "title":        row["title"],
+            "doi":          row["doi"] if row["doi"] else None,
+            "pub_year":     int(row["pub_year"]) if pd.notna(row["pub_year"]) else None,
+            "times_cited":  int(row["times_cited"]) if pd.notna(row["times_cited"]) else 0,
+            "first_author": _first_author(row["authors"]),
+        },
+    })
+
+spotlight_out = {
+    "spotlights":   spotlight_list,
+    "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+}
+write_json(OUTPUT_DIR / "support_spotlight.json", spotlight_out)
+print(f"  Spotlight services: {len(spotlight_list)}/{len(SPOTLIGHT_SERVICES)}")
+
 # In[16]:
 
 
@@ -249,8 +447,77 @@ SELECT
     p.funding_orgs,
     c.category,
     c.ecosystem_service,
-    c.technology
+    c.technology,
+	-- Parsed WoS categories as a pipe-separated string for easy filtering
+    -- (pipe '|' is safe because WoS category names never contain '|')
+    COALESCE(
+        (SELECT STRING_AGG(pf.feature_val, ' | ' ORDER BY pf.feature_val)
+         FROM paper_features pf
+         WHERE pf.wos_id = p.wos_id
+           AND pf.feature_set = 'nlp_v1'
+           AND pf.feature_key = 'wos_category'
+           AND pf.is_current  = TRUE),
+        p.wos_categories
+    ) AS wos_categories_parsed,
+
+    -- First-author country (single value, good for choropleth map)
+    (SELECT pf.feature_val
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'country_first'
+       AND pf.is_current  = TRUE
+     LIMIT 1
+    ) AS country_first,
+
+    -- All countries (pipe-separated, good for multi-country filtering)
+    (SELECT STRING_AGG(pf.feature_val, ' | ' ORDER BY pf.feature_val)
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'country'
+       AND pf.is_current  = TRUE
+    ) AS countries_all,
+
+    -- First-author institution (single value, for filtering)
+    (SELECT pf.feature_val
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'institution_top'
+       AND pf.is_current  = TRUE
+     LIMIT 1
+    ) AS institution_top,
+
+    -- All institutions (pipe-separated)
+    (SELECT STRING_AGG(pf.feature_val, ' | ' ORDER BY pf.feature_val)
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'institution_all'
+       AND pf.is_current  = TRUE
+    ) AS institutions_all,
+
+    -- Technology cluster (BERTopic-derived, 25 canonical categories)
+    (SELECT pf.feature_val
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'technology_cluster'
+       AND pf.is_current  = TRUE
+     LIMIT 1
+    ) AS technology_cluster,
+
+    -- Top funding agencies (pipe-separated, whitelist-matched)
+    (SELECT STRING_AGG(pf.feature_val, ' | ' ORDER BY pf.feature_val)
+     FROM paper_features pf
+     WHERE pf.wos_id = p.wos_id
+       AND pf.feature_set = 'nlp_v1'
+       AND pf.feature_key = 'funding_top'
+       AND pf.is_current  = TRUE
+    ) AS funding_agencies
 FROM papers p
+
 JOIN classifications c ON p.wos_id = c.wos_id
 WHERE p.is_review = FALSE
   AND c.is_current = TRUE
@@ -269,6 +536,13 @@ COLUMN_ORDER = [
     "authors", "affiliations", "wos_categories",
     "keywords", "addresses", "funding_orgs",
     "category", "ecosystem_service", "service_category", "technology",
+    "wos_categories_parsed",
+    "country_first",      # first-author country, single value
+    "countries_all",      # all countries, pipe-separated
+    "institution_top",    # first-author institution
+    "institutions_all",   # all institutions, pipe-separated
+    "technology_cluster",   # BERTopic cluster (25 categories)
+    "funding_agencies",     # whitelist-matched funding agencies, pipe-separated
 ]
 papers_df = papers_df[COLUMN_ORDER]
  
@@ -300,7 +574,7 @@ print(f"  Size: {size_mb:.1f} MB (snappy-compressed parquet)")
 conn.close()
 elapsed = time.time() - t0
 print(f"\n✓ All files written to {OUTPUT_DIR.resolve()}/")
-for fname in ("corpus_meta.json", "services_summary.json", "papers_classified.parquet"):
+for fname in ("corpus_meta.json", "services_summary.json", "annual_by_category.json", "country_oa.json", "support_spotlight.json", "papers_classified.parquet"):
     fpath = OUTPUT_DIR / fname
     size = os.path.getsize(fpath) / 1024  # KB
     unit = "KB" if size < 1024 else "MB"
