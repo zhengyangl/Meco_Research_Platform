@@ -1953,7 +1953,7 @@ st.markdown(f"""
     <div style="font: 500 .62rem/1 'Inter',sans-serif; letter-spacing:.14em;
                 color:#8A847B; margin-bottom:.5rem;">KEY INSIGHT</div>
     <div style="font: 300 .82rem/1.65 'Inter',sans-serif; color:#2A2722;">
-        The gap in <b>what</b> biomimetics builds (see &sect;2) mirrors a
+        The gap in <b>what</b> biomimetics builds mirrors a
         gap in <b>who</b> builds it. This field mines nature for <em>parts</em>
         &mdash; molecules, structures, materials &mdash; but not for
         <em>principles</em>. The disciplines that study how ecosystems
