@@ -948,13 +948,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="hero-nav">
-  <a class="hn-primary" href="#sec-feel">Take me through the story</a>
-  <a class="hn-secondary" href="/explorer" target="_blank">Data Explorer</a>
-</div>
-""", unsafe_allow_html=True)
-
 st.markdown('<div class="hero-eyebrow">Manufactured Ecosystems · Research Dashboard</div>',
             unsafe_allow_html=True)
 st.markdown('<h1 class="hero-title">Nature Is Not Optional.</h1>', unsafe_allow_html=True)
@@ -2533,13 +2526,13 @@ components.html("""
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: transparent; font-family: 'Inter', sans-serif; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-  .card { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 10px; padding: 1.6rem 1.5rem; text-decoration: none; display: block; box-shadow: 0 1px 3px rgba(42,39,34,.04); transition: border-color .22s, background .22s, box-shadow .22s; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .card { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 10px; padding: 1.3rem 1.2rem; text-decoration: none; display: block; box-shadow: 0 1px 3px rgba(42,39,34,.04); transition: border-color .22s, background .22s, box-shadow .22s; }
   .card:hover { border-color: rgba(61,122,82,0.45); background: rgba(61,122,82,0.04); box-shadow: 0 3px 8px rgba(42,39,34,.07); }
-  .card-icon { font-size: 1.6rem; display: block; margin-bottom: .7rem; }
-  .card-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: #2A2722; margin-bottom: .5rem; line-height: 1.25; }
-  .card-desc { font-size: .78rem; font-weight: 300; color: #6B665E; line-height: 1.65; margin-bottom: 1rem; }
-  .card-cta { font-size: .64rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
+  .card-icon { font-size: 1.4rem; display: block; margin-bottom: .6rem; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700; color: #2A2722; margin-bottom: .4rem; line-height: 1.25; }
+  .card-desc { font-size: .74rem; font-weight: 300; color: #6B665E; line-height: 1.6; margin-bottom: .9rem; }
+  .card-cta { font-size: .62rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
 </style></head><body>
 <div class="grid">
   <a class="card" href="https://doi.org/10.3390/biomimetics10110784" target="_blank">
@@ -2552,6 +2545,11 @@ components.html("""
     <div class="card-desc">Go deeper into the four knowledge pillars — Nature, Technology, Imagination, and Each Other. A growing library of resources across disciplines.</div>
     <div class="card-cta">Start exploring →</div>
   </a>
+  <a class="card" href="/explorer" target="_blank">
+    <div class="card-title">Explore the data yourself</div>
+    <div class="card-desc">Explore every paper yourself. Filter by service, paradigm, country, or technology to build your own lens.</div>
+    <div class="card-cta">Open Data Explorer →</div>
+  </a>  
 </div>
 </body></html>
 """, height=280)
