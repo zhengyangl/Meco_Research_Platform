@@ -675,52 +675,210 @@ def credibility_badge(has_real: bool = True, has_sim: bool = False):
                    'Simulated / illustrative</span>')
     st.markdown(f'<div class="badge-row">{badges}</div>', unsafe_allow_html=True)
 
-def build_sankey(replace, enhance, support, label_r, label_e, label_s):
-    r_bio  = int(replace * 0.48); r_dis  = int(replace * 0.17)
-    r_was  = int(replace * 0.15); r_fib  = int(replace * 0.11)
-    r_crit = int(replace * 0.01)
-    r_oth  = replace - r_bio - r_dis - r_was - r_fib - r_crit
-    e_bio  = int(enhance * 0.44); e_fib  = int(enhance * 0.14)
-    e_was  = int(enhance * 0.09); e_dis  = int(enhance * 0.09)
-    e_crit = int(enhance * 0.02)
-    e_oth  = enhance - e_bio - e_fib - e_was - e_dis - e_crit
-    s_bio  = int(support * 0.31)
-    s_crit = int(support * 0.35)
-    s_oth  = support - s_bio - s_crit
-    nodes = [
-        label_r, label_e, label_s,
-        "Biochemicals", "Disease Regulation", "Waste Treatment",
-        "Fibre / Materials", "Other Services",
-        "Critical Services\n(Pollination · Soil · Nutrients)",
+def build_sankey(groups, label_r, label_e, label_s):
+    """Build a 3 to 6 Sankey from paradigm sources to target-group sinks.
+
+    Args:
+        groups: list of dicts with keys {'key', 'label', 'replace', 'enhance',
+                'support'}. 'key' is used for coloring ('critical' → green
+                highlight, 'other' → muted, everything else → neutral gray).
+        label_r/e/s: source-node labels (e.g. "Replace  58%").
+    """
+    n_groups = len(groups)
+    nodes = [label_r, label_e, label_s] + [g["label"] for g in groups]
+
+    # Node colors: sources use paradigm palette; target colors depend on group.
+    source_colors = [
+        "rgba(168,116,14,0.88)",   # Replace amber
+        "rgba(29,140,105,0.85)",   # Enhance green
+        "rgba(46,124,184,0.88)",   # Support blue
     ]
-    node_colors = [
-        "rgba(168,116,14,0.88)", "rgba(29,140,105,0.85)", "rgba(46,124,184,0.88)",
-        "rgba(138,132,123,0.85)", "rgba(138,132,123,0.80)", "rgba(138,132,123,0.80)",
-        "rgba(138,132,123,0.80)", "rgba(184,176,164,0.75)", "rgba(61,122,82,0.90)",
+    target_colors = []
+    for g in groups:
+        if g["key"] == "critical":
+            target_colors.append("rgba(61,122,82,0.90)")   # highlighted green
+        elif g["key"] == "other":
+            target_colors.append("rgba(184,176,164,0.75)") # muted
+        else:
+            target_colors.append("rgba(138,132,123,0.80)") # neutral gray
+    node_colors = source_colors + target_colors
+
+# Precompute paradigm totals for percentage math in hover tooltips.
+    source_totals = [
+        sum(g["replace"] for g in groups),   # 0: Replace total
+        sum(g["enhance"] for g in groups),   # 1: Enhance total
+        sum(g["support"] for g in groups),   # 2: Support total
     ]
-    source = [0,0,0,0,0,0, 1,1,1,1,1,1, 2,2,2]
-    target = [3,4,5,6,7,8, 3,4,5,6,7,8, 3,7,8]
-    value  = [r_bio, r_dis, r_was, r_fib, r_oth, r_crit,
-              e_bio, e_dis, e_was, e_fib, e_oth, e_crit,
-              s_bio, s_oth, s_crit]
-    link_colors = []
-    for s, t in zip(source, target):
-        if t == 8:
-            link_colors.append("rgba(61,122,82,0.50)" if s == 2 else "rgba(61,122,82,0.20)")
-        elif s == 0: link_colors.append("rgba(168,116,14,0.20)")
-        elif s == 1: link_colors.append("rgba(29,140,105,0.20)")
-        else:        link_colors.append("rgba(46,124,184,0.24)")
+
+    # Flows: for each group, add one link from each paradigm source.
+    # Skip zero-value flows to keep the layout clean. Also record customdata
+    # per link — [pct_of_target, pct_of_source] — for hover percentages.
+    source, target, value, link_colors, link_customdata = [], [], [], [], []
+    for i, g in enumerate(groups):
+        target_idx = 3 + i
+        target_total = g["replace"] + g["enhance"] + g["support"]
+        for src_idx, paradigm_key, paradigm_name, base_rgb in [
+            (0, "replace", "Replace", "168,116,14"),
+            (1, "enhance", "Enhance", "29,140,105"),
+            (2, "support", "Support", "46,124,184"),
+        ]:
+            v = g[paradigm_key]
+            if v <= 0:
+                continue
+            source.append(src_idx); target.append(target_idx); value.append(v)
+            pct_s = v / source_totals[src_idx] * 100 if source_totals[src_idx] else 0
+            link_customdata.append([paradigm_name, pct_s])
+            # Highlight the Support → Critical link — the narrative's punchline.
+            if g["key"] == "critical" and src_idx == 2:
+                link_colors.append("rgba(61,122,82,0.55)")
+            elif g["key"] == "critical":
+                link_colors.append("rgba(61,122,82,0.20)")
+            else:
+                link_colors.append(f"rgba({base_rgb},0.22)")
+
+    # Node customdata: pre-formatted breakdown strings for hover.
+    # Source nodes → simple total. Target nodes → full R/E/S breakdown.
+    node_customdata = []
+    for src_idx in range(3):
+        node_customdata.append(f"{source_totals[src_idx]:,} papers total")
+    for g in groups:
+        t_total = g["replace"] + g["enhance"] + g["support"]
+        if t_total > 0:
+            r_pct = g["replace"] / t_total * 100
+            e_pct = g["enhance"] / t_total * 100
+            s_pct = g["support"] / t_total * 100
+            node_customdata.append(
+                f"{t_total:,} papers received<br>"
+                f"Replace: {g['replace']:,} ({r_pct:.0f}%)<br>"
+                f"Enhance: {g['enhance']:,} ({e_pct:.0f}%)<br>"
+                f"Support: {g['support']:,} ({s_pct:.0f}%)"
+            )
+        else:
+            node_customdata.append("(empty)")
+
+    # Manual node positioning — force sources to spread evenly on the left
+    _node_x = [0.001, 0.001, 0.001] + [0.999] * n_groups
+    _node_y = [0.18, 0.7, 0.95] + [
+        (i + 0.5) / n_groups for i in range(n_groups)
+    ]
+
     fig = go.Figure(go.Sankey(
         arrangement="snap",
-        node=dict(pad=18, thickness=22, label=nodes, color=node_colors,
-                  line=dict(color="#FFFFFF", width=0.5)),
-        link=dict(source=source, target=target, value=value, color=link_colors,
-                  hovertemplate="%{source.label} → %{target.label}<br>Flow: %{value} units<extra></extra>"),
+        node=dict(
+            pad=18, thickness=22, label=nodes, color=node_colors,
+            x=_node_x, y=_node_y,
+            customdata=node_customdata,
+            hovertemplate="<b>%{label}</b><br>%{customdata}<extra></extra>",
+            line=dict(color="#FFFFFF", width=0.5),
+        ),
+        link=dict(
+            source=source, target=target, value=value, color=link_colors,
+            customdata=link_customdata,
+            hovertemplate=(
+                "<b>%{customdata[1]:.0f}% of %{customdata[0]}</b> "
+                "→ <b>%{target.label}</b>"
+                "<br>Flow: <b>%{value:,}</b> papers"
+                "<extra></extra>"
+            ),
+        ),
     ))
     fig.update_layout(paper_bgcolor="#FFFFFF",
                       font=dict(size=11, color="#4A453E", family="Inter, sans-serif"),
-                      height=440, margin=dict(l=10, r=10, t=10, b=10))
+                      height=560, margin=dict(l=10, r=10, t=25, b=45))
     return fig
+
+
+def _s4_target_groups():
+    """Build the 6-target groups for Sankey chart.
+    Structure:
+        - Top 4 services by total paper count (excluding critical food-system services)
+        - Critical Services   (Pollination + Soil Formation + Nutrient Cycling)
+        - Other Services      (everything else)
+
+    Returns a list of dicts:
+        {'key', 'label', 'replace', 'enhance', 'support', 'total'}
+    """
+    CRITICAL = {"Pollination", "Soil Formation", "Nutrient Cycling"}
+
+    # Rank services by total, excluding critical from the top-4 pool
+    ranked = sorted(
+        [s for s in SVC_SUMMARY["services"] if s["service"] not in CRITICAL],
+        key=lambda s: s["total"],
+        reverse=True,
+    )
+    top4 = ranked[:4]
+    top4_names = {s["service"] for s in top4}
+
+    groups = []
+    for s in top4:
+        groups.append({
+            "key": s["service"],
+            "label": display_name(s["service"]),
+            "replace": int(s["replace"]),
+            "enhance": int(s["enhance"]),
+            "support": int(s["support"]),
+            "total":   int(s["total"]),
+        })
+
+    # Critical group — sum of the three food-system services
+    crit = {"replace": 0, "enhance": 0, "support": 0, "total": 0}
+    for s in SVC_SUMMARY["services"]:
+        if s["service"] in CRITICAL:
+            for k in ("replace", "enhance", "support", "total"):
+                crit[k] += int(s[k])
+    groups.append({
+        "key": "critical",
+        "label": "Critical Services\n(Pollination · Soil · Nutrients)",
+        **crit,
+    })
+
+    # Other group — everything not in top-4 and not critical
+    other = {"replace": 0, "enhance": 0, "support": 0, "total": 0}
+    for s in SVC_SUMMARY["services"]:
+        if s["service"] not in top4_names and s["service"] not in CRITICAL:
+            for k in ("replace", "enhance", "support", "total"):
+                other[k] += int(s[k])
+    groups.append({
+        "key": "other",
+        "label": "Other Services",
+        **other,
+    })
+
+    return groups
+
+
+def _s4_scenario_groups(real_groups, tgt_r_pct, tgt_e_pct, tgt_s_pct):
+    """Recompute each group's R/E/S under a hypothetical global paradigm mix.
+
+    Total corpus stays the same. Each paradigm's global total is set to
+    (target_pct × total). Each group keeps its relative share within each
+    paradigm — so the target rankings don't change, only the paradigm mix.
+    """
+    real_r = sum(g["replace"] for g in real_groups)
+    real_e = sum(g["enhance"] for g in real_groups)
+    real_s = sum(g["support"] for g in real_groups)
+    total = real_r + real_e + real_s
+    tgt_r = total * tgt_r_pct
+    tgt_e = total * tgt_e_pct
+    tgt_s = total * tgt_s_pct
+
+    scenario = []
+    for g in real_groups:
+        share_r = g["replace"] / real_r if real_r else 0
+        share_e = g["enhance"] / real_e if real_e else 0
+        share_s = g["support"] / real_s if real_s else 0
+        new_r = int(round(share_r * tgt_r))
+        new_e = int(round(share_e * tgt_e))
+        new_s = int(round(share_s * tgt_s))
+        scenario.append({
+            "key":     g["key"],
+            "label":   g["label"],
+            "replace": new_r,
+            "enhance": new_e,
+            "support": new_s,
+            "total":   new_r + new_e + new_s,
+        })
+    return scenario
 
 
 # ════════════════════════════════════════════════════════════════
@@ -1877,23 +2035,63 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
+# Build groups from live SVC_SUMMARY data.
+_real_groups4     = _s4_target_groups()
+_scenario_groups4 = _s4_scenario_groups(_real_groups4, 0.41, 0.39, 0.20)
+
+def _paradigm_totals4(groups):
+    return {"replace": sum(g["replace"] for g in groups),
+            "enhance": sum(g["enhance"] for g in groups),
+            "support": sum(g["support"] for g in groups)}
+
+_real_tot4  = _paradigm_totals4(_real_groups4)
+_scen_tot4  = _paradigm_totals4(_scenario_groups4)
+_real_all4  = _real_tot4["replace"] + _real_tot4["enhance"] + _real_tot4["support"]
+_scen_all4  = _scen_tot4["replace"] + _scen_tot4["enhance"] + _scen_tot4["support"]
+
+def _fmt_pct4(v, total):
+    return f"{v/total*100:.0f}%" if total else "—"
+
+# Critical-support flow for the callout narrative
+def _crit_support4(groups):
+    for g in groups:
+        if g["key"] == "critical":
+            return g["support"]
+    return 0
+_real_crit_s4 = _crit_support4(_real_groups4)
+_scen_crit_s4 = _crit_support4(_scenario_groups4)
+_crit_growth4 = _scen_crit_s4 / _real_crit_s4 if _real_crit_s4 else 0
+
 _SCENARIOS4 = {
-    "Current state  (Support = 3%)": {
-        "replace": 580, "enhance": 390, "support": 30,
-        "label_r": "Replace  58%", "label_e": "Enhance  39%", "label_s": "Support   3%",
-        "callout": ("At <b>3%</b>, Support-oriented research sends only <b>~8 units</b> "
-                    "to Critical Services — the rarest, most foundational flows in the entire corpus."),
+    f"Current state  (Support = {_fmt_pct4(_real_tot4['support'], _real_all4)})": {
+        "groups":  _real_groups4,
+        "label_r": f"Replace  {_fmt_pct4(_real_tot4['replace'], _real_all4)}",
+        "label_e": f"Enhance  {_fmt_pct4(_real_tot4['enhance'], _real_all4)}",
+        "label_s": f"Support  {_fmt_pct4(_real_tot4['support'], _real_all4)}",
+        "callout": (
+            f"At <b>{_fmt_pct4(_real_tot4['support'], _real_all4)}</b>, "
+            f"Support-oriented research sends only "
+            f"<b>{_real_crit_s4:,} papers</b> to Critical Services — "
+            f"the rarest, most foundational flows in the entire corpus."
+        ),
     },
-    "Scenario  (Support = 20%)": {
-        "replace": 410, "enhance": 390, "support": 200,
-        "label_r": "Replace  41%", "label_e": "Enhance  39%", "label_s": "Support  20%",
-        "callout": ("At <b>20%</b>, the flow to Critical Services grows to <b>~70 units</b> — "
-                    "a <b>9× increase</b> — while Replace research still receives the majority."),
+    f"Scenario  (Support = {_fmt_pct4(_scen_tot4['support'], _scen_all4)})": {
+        "groups":  _scenario_groups4,
+        "label_r": f"Replace  {_fmt_pct4(_scen_tot4['replace'], _scen_all4)}",
+        "label_e": f"Enhance  {_fmt_pct4(_scen_tot4['enhance'], _scen_all4)}",
+        "label_s": f"Support  {_fmt_pct4(_scen_tot4['support'], _scen_all4)}",
+        "callout": (
+            f"At <b>{_fmt_pct4(_scen_tot4['support'], _scen_all4)}</b>, "
+            f"the flow to Critical Services would grow to "
+            f"<b>{_scen_crit_s4:,} papers</b> — "
+            f"a <b>{_crit_growth4:.1f}× increase</b> — while Replace research "
+            f"still receives the majority."
+        ),
     },
 }
 st.markdown('<div class="chart-label">A map of choices — where research attention flows</div>',
             unsafe_allow_html=True)
-credibility_badge(has_real=True, has_sim=True)
+credibility_badge(has_real=True, has_sim=False)
 st.markdown("""
 <p class="chart-sub-label">
     The same total research effort, distributed differently.
@@ -1906,9 +2104,7 @@ _scenario_key = st.radio(label="Select scenario", options=list(_SCENARIOS4.keys(
                          horizontal=True, label_visibility="collapsed")
 _sc4 = _SCENARIOS4[_scenario_key]
 st.markdown(f'<div class="scenario-callout">{_sc4["callout"]}</div>', unsafe_allow_html=True)
-_sankey4 = build_sankey(_sc4["replace"], _sc4["enhance"], _sc4["support"],
-                        _sc4["label_r"], _sc4["label_e"], _sc4["label_s"])
-
+_sankey4 = build_sankey(_sc4["groups"], _sc4["label_r"], _sc4["label_e"], _sc4["label_s"])
 _sankey4.update_traces(
     textfont=dict(
         size=12, 
@@ -1921,10 +2117,10 @@ _sankey4.update_layout(
         font=dict(size=13, color="#333333")
     )
 )
-# ═════════════════════════════════════════════════
 st.plotly_chart(_sankey4, use_container_width=True, config={"displayModeBar": False})
 
-# Global accessibility map 
+
+#---- Global accessibility map ---
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Global reach — who can access replacement technologies?</div>',
             unsafe_allow_html=True)
@@ -2329,7 +2525,7 @@ else:
     """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-st.markdown('<div class="chart-label">Ways to engage with Manufactured Ecosystems</div>',
+st.markdown('<div class="chart-label">Where to go next</div>',
             unsafe_allow_html=True)
 components.html("""
 <!DOCTYPE html><html><head>
@@ -2337,54 +2533,28 @@ components.html("""
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: transparent; font-family: 'Inter', sans-serif; }
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .card { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 10px; padding: 1.3rem 1.2rem; text-decoration: none; display: block; box-shadow: 0 1px 3px rgba(42,39,34,.04); transition: border-color .22s, background .22s, box-shadow .22s; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .card { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 10px; padding: 1.6rem 1.5rem; text-decoration: none; display: block; box-shadow: 0 1px 3px rgba(42,39,34,.04); transition: border-color .22s, background .22s, box-shadow .22s; }
   .card:hover { border-color: rgba(61,122,82,0.45); background: rgba(61,122,82,0.04); box-shadow: 0 3px 8px rgba(42,39,34,.07); }
-  .card-icon { font-size: 1.4rem; display: block; margin-bottom: .6rem; }
-  .card-title { font-family: 'Playfair Display', serif; font-size: .92rem; font-weight: 700; color: #2A2722; margin-bottom: .4rem; line-height: 1.25; }
-  .card-desc { font-size: .72rem; font-weight: 300; color: #6B665E; line-height: 1.6; margin-bottom: .9rem; }
-  .card-cta { font-size: .62rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
+  .card-icon { font-size: 1.6rem; display: block; margin-bottom: .7rem; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: #2A2722; margin-bottom: .5rem; line-height: 1.25; }
+  .card-desc { font-size: .78rem; font-weight: 300; color: #6B665E; line-height: 1.65; margin-bottom: 1rem; }
+  .card-cta { font-size: .64rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
 </style></head><body>
 <div class="grid">
-  <a class="card" href="https://www.manufacturedecosystems.com/virtual-exhibition-2025" target="_blank">
-    <span class="card-icon">🌿</span>
-    <div class="card-title">Virtual Exhibition 2025</div>
-    <div class="card-desc">Explore the live exhibition — art, VR, and community reflections on what a technology-realised wetland might look like. Available now, from anywhere in the world.</div>
-    <div class="card-cta">Explore the exhibition →</div>
-  </a>
-  <a class="card" href="https://www.manufacturedecosystems.com/seminar-series" target="_blank">
-    <span class="card-icon">🎙️</span>
-    <div class="card-title">Seminar Series</div>
-    <div class="card-desc">Transdisciplinary conversations at the edge of biology, engineering, design, and the humanities. Open to researchers, practitioners, and curious minds at every stage.</div>
-    <div class="card-cta">View upcoming seminars →</div>
-  </a>
   <a class="card" href="https://doi.org/10.3390/biomimetics10110784" target="_blank">
-    <span class="card-icon">📄</span>
-    <div class="card-title">The Research Paper</div>
-    <div class="card-desc">The peer-reviewed study behind this dashboard. Jacobs et al. (2025), <em>Biomimetics</em> 10, 784. Open access — free for anyone, anywhere.</div>
+    <div class="card-title">Read the research paper</div>
+    <div class="card-desc">The peer-reviewed study behind every number on this page. Jacobs et al. (2025), <em>Biomimetics</em>, vol. 10, art. 784. Open access.</div>
     <div class="card-cta">Read the paper →</div>
   </a>
   <a class="card" href="https://www.manufacturedecosystems.com/home/learning-from-nature" target="_blank">
-    <span class="card-icon">🌱</span>
     <div class="card-title">Learning from Nature</div>
-    <div class="card-desc">Dive deeper into the four knowledge pillars of the project — Nature, Technology, Imagination, and Each Other. A growing library of resources for all disciplines.</div>
+    <div class="card-desc">Go deeper into the four knowledge pillars — Nature, Technology, Imagination, and Each Other. A growing library of resources across disciplines.</div>
     <div class="card-cta">Start exploring →</div>
-  </a>
-  <a class="card" href="https://www.manufacturedecosystems.com/about-us" target="_blank">
-    <span class="card-icon">🤝</span>
-    <div class="card-title">The Team</div>
-    <div class="card-desc">An international, cross-disciplinary collective of biologists, engineers, designers, literary scholars, artists, and educators working toward a shared question.</div>
-    <div class="card-cta">Meet the team →</div>
-  </a>
-  <a class="card" href="https://www.manufacturedecosystems.com/contact" target="_blank">
-    <span class="card-icon">✉️</span>
-    <div class="card-title">Get in Touch</div>
-    <div class="card-desc">Have a collaboration idea? A research question? A story to tell? The Manufactured Ecosystems project is actively looking for new partners, contributors, and conversations.</div>
-    <div class="card-cta">Start a conversation →</div>
   </a>
 </div>
 </body></html>
-""", height=450)
+""", height=280)
 
 st.markdown("""
 <div class="final-wrap">
