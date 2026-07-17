@@ -1383,7 +1383,9 @@ _bar_fig.update_layout(
         tickmode='array',
         tickvals=_yidx, ticktext=_labels,
         tickfont=dict(size=11, color="#4A453E", family="Inter, sans-serif"),
-        autorange='reversed', showline=False, ticks=""),
+        # autorange='reversed', 
+        range=[len(_labels) - 0.5, -0.5],
+        showline=False, ticks=""),
     hoverlabel=dict(
         bgcolor="#FFFFFF", bordercolor="#E5E1DA",
         font=dict(size=11, color="#2A2722", family="Inter, sans-serif")),
@@ -1478,6 +1480,7 @@ st.markdown(
     '</p>',
     unsafe_allow_html=True)
 st.plotly_chart(_bar_fig, use_container_width=True,
+                theme=None,height=_fig_h,
                 config={"displayModeBar": False})
 
 
