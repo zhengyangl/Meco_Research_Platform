@@ -404,10 +404,16 @@ def _load_country_oa():
     with open(_DATA_DIR / "country_oa.json", encoding="utf-8") as f:
         return _json.load(f)
 
+@st.cache_data
+def _load_wos_cooccurrence():
+    with open(_DATA_DIR / "wos_cooccurrence.json", encoding="utf-8") as f:
+        return _json.load(f)
+        
 CORPUS = _load_corpus_meta()       # corpus_meta.json contents
 SVC_SUMMARY = _load_services_summary()  # services_summary.json contents
 ANNUAL = _load_annual_by_category()     # annual_by_category.json contents
 COUNTRY_OA = _load_country_oa()         # country_oa.json contents
+WOS_NET = _load_wos_cooccurrence()      # wos_cooccurrence.json contents
 
 # ── Service display-name mapping ────────────────────────────────────
 # Database / aggregate.py stores the raw GPT classification values
@@ -1741,214 +1747,306 @@ components.html(_voice_cutscene_html, height=0)
 # section_sep()
 st.markdown('<div id="sec-islands" class="sec-anchor"></div>', unsafe_allow_html=True)
 st.markdown('<div class="s3-eyebrow">Section 03 · Islands of Expertise</div>', unsafe_allow_html=True)
-st.markdown('<h2 class="s3-title">Why Does the Gap Exist?</h2>', unsafe_allow_html=True)
-st.markdown("""
+st.markdown('<h2 class="s3-title">Bio-inspired &ne; Ecosystem-informed.</h2>', unsafe_allow_html=True)
+st.markdown(f"""
 <p class="s3-sub">
-    The uneven distribution of bio-inspired research is not accidental.
-    It reflects a structural reality: the disciplines most likely to build
-    technological substitutes for nature are not talking to the disciplines
-    that understand what nature is actually doing.
+    Biomimetics is a huge, thriving field. But look at where its researchers
+    actually publish, and a clear divide emerges. Research splits into two
+    tight camps: hard sciences (materials, chemistry, physics) on one side,
+    applied bio-engineering (biomaterials, biomedical devices) on the other.
+    Ecology, conservation biology, environmental science &mdash; the
+    disciplines that study how living systems <em>work</em> &mdash; are
+    almost entirely absent from either.
 </p>
 <p class="s3-sub">
-    The network below maps the academic communities publishing in biomimetics
-    and bio-inspired design. Two clusters emerge with striking clarity —
-    and the bridges between them are almost invisible.
+    Of the {CORPUS["decision_y"]:,} papers in the corpus, only
+    <b>{WOS_NET["eco_absence"]["env_eng_papers"]:,}</b> are classified as
+    <em>Engineering, Environmental</em> &mdash; the sole environmental
+    discipline in the top&nbsp;25. Not a single pure Ecology, Conservation
+    Biology, or Ecosystem Science category makes the list at all.
 </p>
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-_NODES3 = {
-    "Materials Science":  (-1.05,  0.30, 92, "Replace", "Engineering", "~8,200 papers"),
-    "Mech. Engineering":  (-0.80, -0.28, 78, "Replace", "Engineering", "~6,800 papers"),
-    "Chemistry":          (-1.18, -0.18, 70, "Replace", "Engineering", "~6,100 papers"),
-    "Biomedical Eng.":    (-0.78,  0.52, 60, "Replace", "Engineering", "~5,200 papers"),
-    "Computer Science":   (-0.30,  0.05, 34, "Replace", "Bridge",      "~2,700 papers"),
-    "Environmental Sci.": ( 1.02,  0.30, 52, "Enhance", "Ecology",     "~4,400 papers"),
-    "Biology":            ( 0.82, -0.30, 40, "Support", "Ecology",     "~3,300 papers"),
-    "Ecology":            ( 1.18, -0.10, 34, "Support", "Ecology",     "~2,900 papers"),
-    "Architecture/Design":( 0.28, -0.18, 24, "Enhance", "Bridge",      "~1,800 papers"),
-}
-_EDGES3 = [
-    # intra-Engineering (solid, strong)
-    ("Materials Science", "Mech. Engineering", 0.82),
-    ("Materials Science", "Chemistry",          0.76),
-    ("Mech. Engineering", "Biomedical Eng.",    0.55),
-    ("Chemistry",         "Biomedical Eng.",    0.58),
-    # intra-Ecology (solid, strong)
-    ("Ecology",            "Biology",            0.78),
-    ("Environmental Sci.", "Ecology",            0.70),
-    ("Environmental Sci.", "Biology",            0.50),
-    # bridge nodes to their nearer cluster (solid, medium)
-    ("Computer Science",   "Mech. Engineering",  0.42),
-    ("Architecture/Design","Environmental Sci.", 0.30),
-    # cross-cluster (dashed, faint — the whole point)
-    ("Biology",            "Materials Science",  0.06),
-    ("Ecology",            "Mech. Engineering",  0.05),
-    ("Computer Science",   "Architecture/Design",0.10),
-]
-_PAR_COLORS3 = {"Replace":"rgba(168,116,14,0.90)","Enhance":"rgba(29,140,105,0.85)","Support":"rgba(46,124,184,0.88)"}
-_PAR_BORDER3 = {"Replace":"#A8740E","Enhance":"#1D8C69","Support":"#2E7CB8"}
+# ── discipline network — real data from wos_cooccurrence.json ────
+# The number of visible nodes is adjustable; the network re-lays out
+# deterministically for each value. 
+# All positions are stable within a given _S3_TOP_N — no random
+# seeds, no run-to-run drift.
+_S3_TOP_N     = 12
+_S3_PAR_COLOR = {"Replace": "rgba(168,116,14,0.90)",
+                 "Enhance": "rgba(29,140,105,0.85)",
+                 "Support": "rgba(46,124,184,0.88)"}
+_S3_PAR_BORDER = {"Replace": "#A8740E", "Enhance": "#1D8C69", "Support": "#2E7CB8"}
 
-st.markdown('<div class="chart-label">Disciplinary co-occurrence network · biomimetics corpus</div>',
-            unsafe_allow_html=True)
-credibility_badge(has_real=False, has_sim=True)
-st.markdown("""
+# Filter to top-N nodes, then filter edges to those endpoints
+_s3_nodes = WOS_NET["nodes"][:_S3_TOP_N]
+_s3_node_names = {n["raw_name"] for n in _s3_nodes}
+_s3_edges = [e for e in WOS_NET["edges"]
+             if e["a"] in _s3_node_names and e["b"] in _s3_node_names]
+
+# Cluster centres (hand-anchored — this is the "written down" part of the
+# hybrid layout: clusters are placed by editorial decision; nodes within a
+# cluster are placed by a deterministic circular arrangement).
+_S3_CLUSTER_CENTRES = {
+    "Hard-Sci":    (-0.9,  0.15),
+    "Bio-Applied": ( 1.0,  0.15),
+    "Applied-Eng": ( 0.00, -1.0),
+}
+
+# ── Deterministic circular layout within each cluster ───────────────
+# Nodes in each cluster are sorted by paper count (largest first), then
+# placed evenly on a circle around the cluster centre. Same _S3_TOP_N →
+# same layout, every render, on every host.
+import math as _math3
+_s3_by_cluster = {}
+for _n in _s3_nodes:
+    _s3_by_cluster.setdefault(_n["cluster"], []).append(_n)
+for _cluster in _s3_by_cluster:
+    _s3_by_cluster[_cluster].sort(key=lambda n: n["n_papers"], reverse=True)
+
+_s3_pos = {}
+for _cluster, _members in _s3_by_cluster.items():
+    _cx, _cy = _S3_CLUSTER_CENTRES[_cluster]
+    _n_in = len(_members)
+    _r_ring = 0.30 if _n_in <= 3 else 0.42
+    _rot0 = -_math3.pi / 2  # first node sits at the top of its ring
+    for _i, _m in enumerate(_members):
+        if _n_in == 1:
+            _s3_pos[_m["raw_name"]] = (_cx, _cy)
+        else:
+            _angle = 2 * _math3.pi * _i / _n_in + _rot0
+            _s3_pos[_m["raw_name"]] = (_cx + _r_ring * _math3.cos(_angle),
+                                        _cy + _r_ring * _math3.sin(_angle))
+
+# ── Header + credibility + read-the-chart caption ─────────────────
+st.markdown(
+    f'<div class="chart-label">Top {len(_s3_nodes)} disciplines by publication volume &middot; biomimetics corpus</div>',
+    unsafe_allow_html=True)
+credibility_badge(has_real=True, has_sim=False)
+# Build the paradigm-legend string from actually-present paradigms in top-N.
+_s3_present_paradigms = {n["dominant_paradigm"] for n in _s3_nodes}
+_s3_par_legend_bits = []
+if "Replace" in _s3_present_paradigms:
+    _s3_par_legend_bits.append('<span style="color:#A8740E;">replace</span>')
+if "Enhance" in _s3_present_paradigms:
+    _s3_par_legend_bits.append('<span style="color:#1D8C69;">enhance</span>')
+if "Support" in _s3_present_paradigms:
+    _s3_par_legend_bits.append('<span style="color:#2E7CB8;">support</span>')
+_s3_par_legend = " / ".join(_s3_par_legend_bits)
+st.markdown(f"""
 <p class="chart-sub-label">
-    Node size = relative publication volume.
-    Node colour = dominant design paradigm
-    (<span style="color:#A8740E;">replace</span> /
-    <span style="color:#1D8C69;">enhance</span> /
-    <span style="color:#2E7CB8;">support</span>).
-    Solid lines connect disciplines that frequently co-publish; the few
-    <b>dashed</b> lines are the rare cross-cluster collaborations.
+    Node size = paper count. Colour = dominant paradigm
+    ({_s3_par_legend}). <b>Dashed</b> lines mark rare cross-cluster
+    collaborations.
 </p>
 """, unsafe_allow_html=True)
 
+# ── Figure ──────────────────────────────────────────────────────
 _net3 = go.Figure()
-# Background cluster zones — pushed apart to emphasize the divide
-_net3.add_shape(type="circle", x0=-1.45, y0=-0.70, x1=-0.55, y1=0.80,
-                fillcolor="rgba(168,116,14,0.05)",
-                line=dict(color="rgba(168,116,14,0.18)", width=1, dash="dot"), layer="below")
-_net3.add_annotation(x=-1.00, y=0.88, text="Engineering & Materials",
-                     font=dict(size=10, color="rgba(168,116,14,0.70)", family="Inter, sans-serif"),
-                     showarrow=False)
-_net3.add_shape(type="circle", x0=0.55, y0=-0.62, x1=1.45, y1=0.70,
-                fillcolor="rgba(46,124,184,0.05)",
-                line=dict(color="rgba(46,124,184,0.18)", width=1, dash="dot"), layer="below")
-_net3.add_annotation(x=1.00, y=0.78, text="Ecology & Life Sciences",
-                     font=dict(size=10, color="rgba(46,124,184,0.70)", family="Inter, sans-serif"),
-                     showarrow=False)
-_net3.add_annotation(x=0.0, y=-0.55, text="← the gap →",
-                     font=dict(size=11, color="rgba(42,39,34,0.32)", family="Inter, sans-serif"),
-                     showarrow=False)
 
-# Edge traces — solid for intra-cluster, dashed for cross-cluster
-for (_a, _b, _w) in _EDGES3:
-    _x0, _y0 = _NODES3[_a][0], _NODES3[_a][1]
-    _x1, _y1 = _NODES3[_b][0], _NODES3[_b][1]
-    _is_cross = (_NODES3[_a][4] != _NODES3[_b][4]) and \
-                ("Bridge" not in (_NODES3[_a][4], _NODES3[_b][4]))
-    if _is_cross:
-        _dash = "dash"; _op = 0.22; _wd = 1.0
+# Cluster background zones — light tinted circles behind each family
+_S3_CLUSTER_STYLE = {
+    "Hard-Sci":    {"fill": "rgba(168,116,14,0.05)", "border": "rgba(168,116,14,0.18)",
+                    "label": "HARD-SCI · materials, chemistry, physics", "label_color": "rgba(168,116,14,0.70)"},
+    "Bio-Applied": {"fill": "rgba(29,140,105,0.05)", "border": "rgba(29,140,105,0.18)",
+                    "label": "BIO-APPLIED · biology as engineering resource", "label_color": "rgba(29,140,105,0.70)"},
+    "Applied-Eng": {"fill": "rgba(138,132,123,0.06)", "border": "rgba(138,132,123,0.20)",
+                    "label": "APPLIED-ENG", "label_color": "rgba(107,102,94,0.75)"},
+}
+for _cluster, _members in _s3_by_cluster.items():
+    _cx, _cy = _S3_CLUSTER_CENTRES[_cluster]
+    _r_bg = 0.65 if len(_members) >= 4 else (0.52 if len(_members) >= 2 else 0.25)
+    _style = _S3_CLUSTER_STYLE[_cluster]
+    _net3.add_shape(type="circle",
+                    x0=_cx - _r_bg, y0=_cy - _r_bg,
+                    x1=_cx + _r_bg, y1=_cy + _r_bg,
+                    fillcolor=_style["fill"],
+                    line=dict(color=_style["border"], width=1, dash="dot"),
+                    layer="below")
+    _net3.add_annotation(x=_cx, y=_cy + _r_bg + 0.08,
+                         text=_style["label"],
+                         font=dict(size=10, color=_style["label_color"],
+                                    family="Inter, sans-serif"),
+                         showarrow=False)
+
+# The absent-discipline annotation — this is what §3 is really about
+_net3.add_annotation(
+    x=0, y=0.75, xref="x", yref="y",
+    text="<i>Ecology · Conservation Biology · Environmental Science</i><br>"
+         "<span style='color:rgba(179,76,47,0.75)'>— not in the top 25 —</span>",
+    font=dict(size=10, color="rgba(107,102,94,0.85)",
+              family="Inter, sans-serif"),
+    align="center", showarrow=False)
+
+# Edge traces
+# Solid for intra-cluster, dashed for cross-cluster. Both weight-scaled.
+_max_cooccur = max((e["cooccur"] for e in _s3_edges), default=1)
+for _e in _s3_edges:
+    _x0, _y0 = _s3_pos[_e["a"]]
+    _x1, _y1 = _s3_pos[_e["b"]]
+    _w_norm = _e["cooccur"] / _max_cooccur   # 0-1
+    if _e["cross"]:
+        _dash = "dash"; _op = 0.28; _wd = 1.0
     else:
-        _dash = "solid"; _op = max(0.12, _w * 0.5); _wd = max(0.8, _w * 4.0)
+        _dash = "solid"
+        _op = max(0.10, _w_norm * 0.38)
+        _wd = max(0.7, _w_norm * 2.8)
     _net3.add_trace(go.Scatter(
         x=[_x0, _x1, None], y=[_y0, _y1, None], mode="lines",
         line=dict(width=_wd, color=f"rgba(42,39,34,{_op:.2f})", dash=_dash),
         hoverinfo="skip", showlegend=False))
 
-# Node text positions
-_TEXT_POS = {
-    "Materials Science":   "top center",
-    "Mech. Engineering":   "bottom center",
-    "Chemistry":           "middle left",
-    "Biomedical Eng.":     "top center",
-    "Computer Science":    "top center",
-    "Environmental Sci.":  "top center",
-    "Biology":             "bottom center",
-    "Ecology":             "middle right",
-    "Architecture/Design": "bottom center",
-}
+# Node size scaling: sqrt of paper count so extremes don't dominate
+_max_papers = max((n["n_papers"] for n in _s3_nodes), default=1)
+def _s3_node_size(n_papers):
+    return 22 + 60 * (n_papers / _max_papers) ** 0.5
+
+# One trace per paradigm so the legend shows R/E/S
 for _par3 in ["Replace", "Enhance", "Support"]:
     _nx, _ny, _nsz, _nlbl, _nhtxt, _ntpos = [], [], [], [], [], []
-    for _nname, (_nx_, _ny_, _nsz_, _npar_, _ncl_, _npl_) in _NODES3.items():
-        if _npar_ != _par3: continue
-        _nx.append(_nx_); _ny.append(_ny_); _nsz.append(_nsz_)
-        _nlbl.append(_nname)   # all 9 nodes labelled now — few enough to stay clean
-        _ntpos.append(_TEXT_POS.get(_nname, "top center"))
-        _nhtxt.append(f"<b>{_nname}</b><br>Dominant paradigm: {_npar_}<br>"
-                      f"Cluster: {_ncl_}<br>{_npl_}")
+    for _node in _s3_nodes:
+        if _node["dominant_paradigm"] != _par3:
+            continue
+        _x, _y = _s3_pos[_node["raw_name"]]
+        _nx.append(_x); _ny.append(_y)
+        _nsz.append(_s3_node_size(_node["n_papers"]))
+        _nlbl.append(_node["display"])
+		# Text position: put label on the outside of the ring, away from cluster centre
+        _cx, _cy = _S3_CLUSTER_CENTRES[_node["cluster"]]
+        _dx, _dy = _x - _cx, _y - _cy
+        if abs(_dx) > abs(_dy):
+            _ntpos.append("middle right" if _dx > 0 else "middle left")
+        else:
+            _ntpos.append("bottom center" if _dy < 0 else "top center")
+        _nhtxt.append(
+            f"<b>{_node['display']}</b><br>"
+            f"{_node['n_papers']:,} papers · cluster: {_node['cluster']}<br>"
+            f"Replace {_node['replace_pct']*100:.0f}% · "
+            f"Enhance {_node['enhance_pct']*100:.0f}% · "
+            f"Support {_node['support_pct']*100:.0f}%"
+        )
     _net3.add_trace(go.Scatter(
         x=_nx, y=_ny, mode="markers+text", name=_par3,
         text=_nlbl, textposition=_ntpos,
         textfont=dict(size=10, color="#4A453E", family="Inter, sans-serif"),
         hoverinfo="text", hovertext=_nhtxt,
-        marker=dict(size=_nsz, color=_PAR_COLORS3[_par3],
-                    line=dict(width=1.5, color=_PAR_BORDER3[_par3]))))
+        marker=dict(size=_nsz, color=_S3_PAR_COLOR[_par3],
+                    line=dict(width=1.5, color="#FFFFFF"))))
+
 _net3.update_layout(
     paper_bgcolor="#FFFFFF", plot_bgcolor="#FBF9F5",
-    height=520, margin=dict(l=20, r=20, t=20, b=20), showlegend=True,
+    height=600, margin=dict(l=20, r=20, t=20, b=20), showlegend=True,
     legend=dict(orientation="h", y=-0.04, x=0.5, xanchor="center",
                 font=dict(size=11, color="#6B665E", family="Inter, sans-serif"),
                 bgcolor="rgba(0,0,0,0)", bordercolor="rgba(0,0,0,0)"),
     hovermode="closest",
     hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#E5E1DA",
                     font=dict(size=11, color="#2A2722", family="Inter, sans-serif")),
-    xaxis=dict(visible=False, range=[-1.65, 1.65]),
-    yaxis=dict(visible=False, range=[-0.85, 1.00]))
+    xaxis=dict(visible=False, range=[-1.85, 1.85]),
+    yaxis=dict(visible=False, range=[-1.60, 1.10]))
 st.plotly_chart(_net3, use_container_width=True, config={"displayModeBar": False})
 
-# RoboBee case study (unchanged)
+st.markdown(f"""
+<div style="margin-top:1rem; padding: 1rem 1.2rem 1rem 1.5rem;
+            border-left: 3px solid #B34C2F; background: transparent;">
+    <div style="font: 500 .62rem/1 'Inter',sans-serif; letter-spacing:.14em;
+                color:#8A847B; margin-bottom:.5rem;">KEY INSIGHT</div>
+    <div style="font: 300 .82rem/1.65 'Inter',sans-serif; color:#2A2722;">
+        The gap in <b>what</b> biomimetics builds (see &sect;2) mirrors a
+        gap in <b>who</b> builds it. This field mines nature for <em>parts</em>
+        &mdash; molecules, structures, materials &mdash; but not for
+        <em>principles</em>. The disciplines that study how ecosystems
+        sustain themselves aren&rsquo;t at the table.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ── RoboBee case study — a example of §3's finding ──────────
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Case study — RoboBee</div>', unsafe_allow_html=True)
-credibility_badge(has_real=False, has_sim=True)
+# This case is drawn directly from Jacobs et al. (2025) — not from a corpus
+# query. The paper uses RoboBees as its central worked example; we surface
+# that example here to make the finding concrete.
+
+credibility_badge(has_real=True, has_sim=True)
 components.html("""
 <!DOCTYPE html><html><head>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: transparent; font-family: 'Inter', sans-serif; color: #2A2722; }
-  .case-wrapper { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 12px; padding: 1.6rem 1.8rem; box-shadow: 0 1px 3px rgba(42,39,34,.04); }
-  .case-header { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: #2A2722; margin-bottom: .25rem; }
-  .case-meta { font-size: .7rem; font-weight: 300; color: #8A847B; margin-bottom: 1.4rem; letter-spacing: .08em; text-transform: uppercase; }
-  .case-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 1.1rem; }
-  .case-col { background: #FBF9F5; border: 1px solid #E5E1DA; border-radius: 8px; padding: 1.1rem 1rem; }
-  .case-col.col-eng  { border-top: 2px solid rgba(168,116,14,0.6); }
-  .case-col.col-eco  { border-top: 2px solid rgba(46,124,184,0.6); }
-  .case-col.col-both { border-top: 2px solid rgba(61,122,82,0.6); }
-  .case-col-title { font-size: .7rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; margin-bottom: .75rem; }
-  .col-eng  .case-col-title { color: #8A5E0B; }
-  .col-eco  .case-col-title { color: #246592; }
-  .col-both .case-col-title { color: #356B49; }
+  .case-wrapper { background: #FFFFFF; border: 1px solid #E5E1DA; border-radius: 12px;
+                  padding: 1.6rem 1.8rem; box-shadow: 0 1px 3px rgba(42,39,34,.04); }
+  .case-header { font-family: 'Playfair Display', serif; font-size: 1.35rem; font-weight: 700;
+                 color: #2A2722; margin-bottom: .3rem; }
+  .case-meta { font-size: .7rem; font-weight: 300; color: #8A847B; margin-bottom: 1.4rem;
+               letter-spacing: .08em; text-transform: uppercase; }
+  .case-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-bottom: 1.2rem; }
+  .case-col { background: #FBF9F5; border: 1px solid #E5E1DA; border-radius: 8px; padding: 1.2rem 1.1rem; }
+  .case-col.col-eng { border-top: 2px solid rgba(168,116,14,0.60); }
+  .case-col.col-eco { border-top: 2px solid rgba(179,76,47,0.60); }
+  .case-col-title { font-size: .68rem; font-weight: 500; letter-spacing: .14em;
+                    text-transform: uppercase; margin-bottom: .8rem; }
+  .col-eng .case-col-title { color: #8A5E0B; }
+  .col-eco .case-col-title { color: #A34528; }
   ul { padding-left: 1.1rem; list-style: disc; }
-  ul li { font-size: .75rem; font-weight: 300; line-height: 1.7; color: #6B665E; margin-bottom: .15rem; }
+  ul li { font-size: .76rem; font-weight: 300; line-height: 1.75; color: #6B665E; margin-bottom: .2rem; }
   ul li b { color: #2A2722; font-weight: 500; }
-  ul li em { color: #356B49; font-style: italic; }
-  .case-footer { font-size: .78rem; font-weight: 300; font-style: italic; line-height: 1.65; color: #8A847B; border-top: 1px solid #E5E1DA; padding-top: .9rem; }
+  ul li em { color: #A34528; font-style: italic; }
+  .case-tie { font-size: .8rem; font-weight: 300; line-height: 1.75; color: #4A453E;
+              margin-bottom: 1rem; padding: 0 .2rem; }
+  .case-tie em { font-style: italic; color: #6B665E; }
+  .case-tie b { font-weight: 500; color: #2A2722; }
+  .case-footer { font-size: .78rem; font-weight: 300; font-style: italic; line-height: 1.7;
+                 color: #8A847B; border-top: 1px solid #E5E1DA; padding-top: 1rem; }
 </style></head><body>
 <div class="case-wrapper">
   <div class="case-header">The Incomplete Invention</div>
   <div class="case-meta">Harvard Microrobotics Lab &middot; 2013 &ndash; present</div>
   <div class="case-grid">
     <div class="case-col col-eng">
-      <div class="case-col-title">What engineering sees</div>
+      <div class="case-col-title">What RoboBee achieves</div>
       <ul>
-        <li><b>Achieved:</b> insect-scale flapping-wing flight</li>
-        <li><b>Achieved:</b> autonomous crop pollination in lab conditions</li>
-        <li><b>Achieved:</b> millimetre-scale actuator design</li>
-        <li><b>Achieved:</b> swarm coordination protocols</li>
-        <li><b>Status:</b> a landmark biomimetic success</li>
+        <li>Insect-scale flapping-wing flight</li>
+        <li>Autonomous crop pollination in lab conditions</li>
+        <li>Millimetre-scale actuator design</li>
+        <li>Swarm coordination protocols</li>
+        <li><b>Status:</b> a landmark biomimetic achievement</li>
       </ul>
     </div>
     <div class="case-col col-eco">
-      <div class="case-col-title">What ecology sees</div>
+      <div class="case-col-title">What a live bee also does</div>
       <ul>
-        <li><b>Missing:</b> food source for insectivores (birds, bats)</li>
-        <li><b>Missing:</b> wax, propolis, and hive products</li>
-        <li><b>Missing:</b> cultural and spiritual meaning of bees</li>
-        <li><b>Missing:</b> soil aeration from burrowing behaviour</li>
-        <li><b>Missing:</b> biodiversity indicator function</li>
-      </ul>
-    </div>
-    <div class="case-col col-both">
-      <div class="case-col-title">What dialogue could build</div>
-      <ul>
-        <li>A robot that tracks and reports on pollinator health</li>
-        <li>Technology designed to <em>support</em> living bees, not replace them</li>
-        <li>Sensors for early ecosystem stress detection</li>
-        <li>Design briefs rooted in full ecological function, not single output</li>
-        <li>Shared language between engineering and ecology</li>
+        <li>Feeds insectivores &mdash; birds, bats, spiders, other bees</li>
+        <li>Produces wax, propolis, honey &mdash; substrates for other species</li>
+        <li>Aerates soil through burrowing behaviour</li>
+        <li>Acts as an <em>indicator</em> of ecosystem health</li>
+        <li>Carries cultural and spiritual meaning across most human societies</li>
       </ul>
     </div>
   </div>
+  <div class="case-tie">
+    RoboBees are the perfect illustration of the finding above. The project
+    lives in the same clusters that dominate the network chart &mdash;
+    materials science, robotics, biomedical engineering. It doesn&rsquo;t
+    live in ecology, or in the study of what a bee actually is to the
+    ecosystem around it. This isn&rsquo;t a criticism of an extraordinary
+    piece of engineering. It&rsquo;s a reminder that when a whole set of
+    disciplines isn&rsquo;t at the table, the resulting invention can only
+    ever be part of the answer.
+  </div>
   <div class="case-footer">
-    &ldquo;RoboBees meet the engineering requirements to achieve the biological function of pollination,
-    but not the complex functionality of a living bee that provides other services.&rdquo;
-    &mdash; Jacobs et al. (2025)
+    &ldquo;RoboBees technology meets the engineering requirements to achieve the biological function of
+    pollination, but not the complex functionality of a living bee that provides other services,
+    such as food production.&rdquo; &mdash;
+    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank"
+       style="color:#8A847B; text-decoration:underline;">Jacobs et al. (2025)</a>
   </div>
 </div>
 </body></html>
-""", height=460)
+""", height=480)
 
 # Framing analysis diverging bar (unchanged)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
