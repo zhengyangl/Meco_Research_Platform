@@ -2125,15 +2125,19 @@ st.plotly_chart(_frame3, use_container_width=True, config={"displayModeBar": Fal
 
 # The finding worth flagging: Support-leaning vocabulary isn't ecological
 # language. It's biomimetic-surface and fluid-dynamics language.
-st.markdown("""
-<div class="scenario-callout">
-    Notice what's <em>not</em> here. Even in the Support subcorpus, the
-    language isn't ecological &mdash; it's <b>drag</b>, <b>shark skin</b>,
-    <b>topography</b>: biomimetic surfaces and fluid dynamics, not
-    ecosystems. Only two of the eight Support-leaning terms
-    (<em>sustainability</em>, <em>ecological</em>) gesture toward ecology
-    at all. The vocabulary confirms what the network above shows: the 3%
-    that lean Support still speak engineering, not ecology.
+st.markdown(f"""
+<div style="margin-top:1rem; padding: 1rem 1.2rem 1rem 1.5rem;
+            border-left: 3px solid #B34C2F; background: transparent;">
+    <div style="font: 500 .62rem/1 'Inter',sans-serif; letter-spacing:.14em;
+                color:#8A847B; margin-bottom:.5rem;">KEY INSIGHT</div>
+    <div style="font: 300 .82rem/1.65 'Inter',sans-serif; color:#2A2722;">
+        Even in the Support subcorpus, the language isn't ecological &mdash; it's <b>drag reduction</b>, <b>shark skin</b>,
+        <b>topography</b>: biomimetic surfaces and fluid dynamics, not
+        ecosystems. Only two of the eight Support-leaning terms
+        (<em>sustainability</em>, <em>ecological</em>) gesture toward ecology
+        at all. The vocabulary confirms what the network above shows: the 3%
+        that lean Support still speak engineering, not ecology.
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
