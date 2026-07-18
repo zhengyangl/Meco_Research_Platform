@@ -409,11 +409,18 @@ def _load_wos_cooccurrence():
     with open(_DATA_DIR / "wos_cooccurrence.json", encoding="utf-8") as f:
         return _json.load(f)
         
+@st.cache_data
+def _load_framing():
+    with open(_DATA_DIR / "framing.json", encoding="utf-8") as f:
+        return _json.load(f)
+        
+        
 CORPUS = _load_corpus_meta()       # corpus_meta.json contents
 SVC_SUMMARY = _load_services_summary()  # services_summary.json contents
 ANNUAL = _load_annual_by_category()     # annual_by_category.json contents
 COUNTRY_OA = _load_country_oa()         # country_oa.json contents
 WOS_NET = _load_wos_cooccurrence()      # wos_cooccurrence.json contents
+FRAMING = _load_framing()               # framing.json contents
 
 # ── Service display-name mapping ────────────────────────────────────
 # Database / aggregate.py stores the raw GPT classification values
@@ -2048,38 +2055,54 @@ components.html("""
 </body></html>
 """, height=480)
 
-# Framing analysis diverging bar (unchanged)
+# ── Framing analysis diverging bar — real abstract vocabulary ──────
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Framing analysis · abstract vocabulary</div>',
             unsafe_allow_html=True)
+credibility_badge(has_real=True, has_sim=False)
 st.markdown("""
 <p class="chart-sub-label">
     Word frequency in the Replace-oriented subcorpus (left, amber)
     vs. the Support-oriented subcorpus (right, blue), per 1,000 abstracts.
-    The disciplinary divide is not just structural — it is linguistic.
+    Terms are drawn from a full scan of 17,242 Replace and 980 Support
+    abstracts, filtered to those a general reader can parse without a
+    materials-science background.
 </p>
 """, unsafe_allow_html=True)
+
+# Build the dataframe from framing.json data. Support-leaning terms
+# sort first (largest support_per_1k first), Replace-leaning terms follow
+# (largest replace_per_1k first) — preserving a top-to-bottom "staircase"
+# within each group.
+_support_words = sorted(
+    [w for w in FRAMING["words"] if w["side"] == "Support"],
+    key=lambda w: w["support_per_1k"], reverse=True)
+_replace_words = sorted(
+    [w for w in FRAMING["words"] if w["side"] == "Replace"],
+    key=lambda w: w["replace_per_1k"], reverse=True)
+_framing_ordered = _support_words + _replace_words
+
 _FRAMING3 = pd.DataFrame({
-    "term": ["Stewardship","Coexistence","Symbiosis","Holistic","Resilience","Restoration","Partnership",
-             "Synthetic","Engineering","Control","Extraction","Maximization","Exploitation","Optimization","Substitution"],
-    "replace_freq": [-6,-9,-11,-14,-22,-7,-5,-68,-92,-115,-79,-102,-74,-86,-91],
-    "support_freq": [44,60,68,50,78,58,40,14,20,10,7,5,4,9,6],
+    "term": [w["display"].title() for w in _framing_ordered],
+    "replace_freq": [-w["replace_per_1k"] for w in _framing_ordered],
+    "support_freq": [w["support_per_1k"] for w in _framing_ordered],
 })
+
 _frame3 = go.Figure()
 _frame3.add_trace(go.Bar(y=_FRAMING3["term"], x=_FRAMING3["replace_freq"], orientation="h",
-    name="Replace subcorpus (technological framing)",
+    name="Replace subcorpus",
     marker=dict(color="rgba(168,116,14,0.75)", line=dict(width=0)),
-    hovertemplate="<b>%{y}</b><br>Replace subcorpus: %{customdata:.0f} per 1,000 abstracts<extra></extra>",
-    customdata=np.abs(_FRAMING3["replace_freq"])))
+    hovertemplate="Replace: <b>%{customdata:.1f}</b> / 1,000<extra></extra>",
+    customdata=_FRAMING3["replace_freq"].abs()))
 _frame3.add_trace(go.Bar(y=_FRAMING3["term"], x=_FRAMING3["support_freq"], orientation="h",
-    name="Support subcorpus (ecological framing)",
+    name="Support subcorpus",
     marker=dict(color="rgba(46,124,184,0.78)", line=dict(width=0)),
-    hovertemplate="<b>%{y}</b><br>Support subcorpus: %{x:.0f} per 1,000 abstracts<extra></extra>"))
+    hovertemplate="Support: <b>%{x:.1f}</b> / 1,000<extra></extra>"))
 _frame3.add_vline(x=0, line_color="rgba(42,39,34,0.25)", line_width=1)
-_frame3.add_annotation(x=-58, y=1.04, yref="paper", text="← Technological / Control",
+_frame3.add_annotation(x=-20, y=1.04, yref="paper", text="← Replace-leaning vocabulary",
     font=dict(size=9, color="rgba(168,116,14,0.70)", family="Inter, sans-serif"),
     showarrow=False, xanchor="right")
-_frame3.add_annotation(x=58, y=1.04, yref="paper", text="Ecological / Relational →",
+_frame3.add_annotation(x=20, y=1.04, yref="paper", text="Support-leaning vocabulary →",
     font=dict(size=9, color="rgba(46,124,184,0.70)", family="Inter, sans-serif"),
     showarrow=False, xanchor="left")
 _frame3.update_layout(
@@ -2090,21 +2113,35 @@ _frame3.update_layout(
     legend=dict(orientation="h", y=-0.12, x=0.5, xanchor="center",
                 font=dict(size=11, color="#6B665E", family="Inter, sans-serif"),
                 bgcolor="rgba(0,0,0,0)", bordercolor="rgba(0,0,0,0)"),
-    xaxis=dict(title=dict(text="Occurrences per 1,000 abstracts (simulated)",
+    xaxis=dict(title=dict(text="Occurrences per 1,000 abstracts",
                           font=dict(size=11, color="#8A847B")),
+               range=[-45, 82],
                tickfont=dict(size=11, color="#8A847B"),
-               tickvals=[-120,-80,-40,0,40,80], ticktext=["120","80","40","0","40","80"],
+               tickvals=[-40,-20,0,20,40,60,80], ticktext=["40","20","0","20","40","60","80"],
                gridcolor="#ECE8E1", linecolor="#E5E1DA", zeroline=False),
     yaxis=dict(tickfont=dict(size=11, color="#6B665E", family="Inter, sans-serif"),
                autorange="reversed", linecolor="#E5E1DA", gridcolor="rgba(0,0,0,0)"))
 st.plotly_chart(_frame3, use_container_width=True, config={"displayModeBar": False})
+
+# The finding worth flagging: Support-leaning vocabulary isn't ecological
+# language. It's biomimetic-surface and fluid-dynamics language.
+st.markdown("""
+<div class="scenario-callout">
+    Notice what's <em>not</em> here. Even in the Support subcorpus, the
+    language isn't ecological &mdash; it's <b>drag</b>, <b>shark skin</b>,
+    <b>topography</b>: biomimetic surfaces and fluid dynamics, not
+    ecosystems. Only two of the eight Support-leaning terms
+    (<em>sustainability</em>, <em>ecological</em>) gesture toward ecology
+    at all. The vocabulary confirms what the network above shows: the 3%
+    that lean Support still speak engineering, not ecology.
+</div>
+""", unsafe_allow_html=True)
+
 st.markdown("""
 <p style="font:300 .68rem/1.7 'Inter',sans-serif;color:#B8B0A4;margin-top:.4rem;padding-left:2px;">
-    Discipline network is simulated from plausible WoS Categories co-occurrence patterns.
-    Framing analysis word frequencies are simulated for illustration.
-    RoboBee citation: Jafferis et al. (2019), <em>Nature</em> 570, 491–495.
-    <a href="https://doi.org/10.3390/biomimetics10110784" target="_blank" style="color:#9A938A;">
-        Read the full paper →</a>
+    Word frequencies computed from 18,222 of 19,269 Replace + Support abstracts
+    (95% coverage &mdash; the rest lack an abstract in the corpus).
+    <a href="/explorer?paradigm=Replace,Support" target="_blank" style="color:#356B49;font-weight:500;">Explore the Data ↗</a>
 </p>
 """, unsafe_allow_html=True)
 
