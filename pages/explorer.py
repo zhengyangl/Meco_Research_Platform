@@ -210,12 +210,7 @@ _MEDIAN_CITED = int(df_all["times_cited"].median())
 # ════════════════════════════════════════════════════════════════
 # URL STATE SYNC 
 # ════════════════════════════════════════════════════════════════
-# Lets a researcher share a precise view by URL. Five core filters round-
-# trip through st.query_params:
-#     year_min, year_max, paradigm, family, service, min_cited
-# Free-text search and OA status are deliberately NOT synced — search
-# strings are session-scoped scratch input, and OA is a single click to
-# toggle. We only sync the long-form filter state.
+# Lets a researcher share a precise view by URL. 
 _qp = st.query_params
 def _read_qp_list(key, valid_set):
     """Read a comma-separated multiselect default from URL, keeping only
@@ -266,7 +261,29 @@ with st.sidebar:
                     del st.session_state[_k]
             st.rerun()
     
-    f_search = st.text_input("🔍 Global Search", placeholder="Title, author, keyword...")
+    f_search = st.text_input("🔍 Quick Search", placeholder="Search title, authors, keywords, technology...",
+                              help="Matches this exact phrase as a substring across title, "
+                                   "authors, keywords, and technology. Not fuzzy — check your "
+                                   "spelling. For country, institution, or journal, use the "
+                                   "filters below instead.")
+
+    # Show the match breakdown immediately under the search box
+    if f_search:
+        _q_preview = f_search.lower()
+        _preview_fields = {"title": "Title", "authors": "Authors",
+                            "keywords": "Keywords", "technology": "Technology"}
+        _preview_counts = {}
+        for _field, _label in _preview_fields.items():
+            _n = int(df_all[_field].fillna("").str.lower()
+                     .str.contains(_q_preview, na=False, regex=False).sum())
+            if _n > 0:
+                _preview_counts[_label] = _n
+        if _preview_counts:
+            _breakdown = " · ".join(f"{k} ({v})" for k, v in _preview_counts.items())
+            st.caption(f"Matched in: {_breakdown}")
+        else:
+            st.caption(f"No matches for \"{f_search}\". Not fuzzy — check spelling.")
+
     st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
     
     with st.expander("🌿 Ecological Focus", expanded=True):
@@ -338,13 +355,17 @@ if st.session_state.f_oa:       df = df[df["open_access"].isin(st.session_state.
 if st.session_state.f_min_cit > 0: df = df[df["times_cited"] >= st.session_state.f_min_cit]
 
 if f_search:
+    # Whole-query substring match, OR'd across the paper's own content
+    # fields only. Deliberately excludes institution/country/journal —
+    # those are structured dimensions better served by the sidebar
+    # filters, and including them here caused confusing false-positive
+    # matches (e.g. "climate change" incidentally matching an unrelated
+    # institution address). 
     q = f_search.lower()
-    mask = (
-        df["title"].fillna("").str.lower().str.contains(q, na=False) |
-        df["authors"].fillna("").str.lower().str.contains(q, na=False) |
-        df["keywords"].fillna("").str.lower().str.contains(q, na=False) |
-        df["technology"].fillna("").str.lower().str.contains(q, na=False)
-    )
+    _search_fields = ["title", "authors", "keywords", "technology"]
+    mask = pd.Series(False, index=df.index)
+    for field in _search_fields:
+        mask |= df[field].fillna("").str.lower().str.contains(q, na=False, regex=False)
     df = df[mask]
 
 # New NLP-derived filters
@@ -443,16 +464,24 @@ def _tier_card(col, label, count, description, threshold_text, accent):
         border-radius:6px;
         padding:.9rem 1rem;
         box-shadow:0 1px 2px rgba(0,0,0,0.03);
-    ">
+    "
+    title="Thresholds are fixed against the full {len(df_all):,}-paper corpus. This count shows how many papers in your CURRENT filter fall into that tier.">
 
       <div style="
           font:500 .65rem/1 'Inter',sans-serif;
           color:#64748B;
           text-transform:uppercase;
           letter-spacing:.08em;
-          margin-bottom:.45rem;
+          margin-bottom:.15rem;
       ">
         {label}
+      </div>
+      <div style="
+          font:400 .60rem/1.3 'Inter',sans-serif;
+          color:#B0B8C4;
+          margin-bottom:.4rem;
+      ">
+        of full corpus
       </div>
 
       <div style="
@@ -642,7 +671,7 @@ _PLOTLY_COUNTRY_MAP = {
 }
 
 if len(df) > 0:
-    with st.expander("📊 Visualizations — Geographic · Trends · Technology", expanded=False):
+    with st.expander("📊 3 Visualizations — Map · Gap Analysis · Tech Treemap", expanded=False):
         tab_map, tab_trend, tab_tech = st.tabs([
             "Global Landscape",
             "Gap Analysis",
@@ -936,7 +965,7 @@ if len(df) > 0:
                         line = dict(width=2, color="#F0FAF0"),
                         colorbar = dict(
                             title = dict(
-                                text = "Median<br>Citations",
+                                text = "Median<br>Citation",
                                 font = dict(size=10, color="#64748B", family="Inter, sans-serif"),
                             ),
                             thickness = 10,
@@ -1005,6 +1034,30 @@ else:
 st.markdown('<div style="margin-top:1.4rem;"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Detailed Records</div>', unsafe_allow_html=True)
 
+# AgGrid Community edition has no built-in column-visibility panel (that's
+# an Enterprise feature in recent ag-Grid versions), so we expose it here
+# in Streamlit instead and pass the resulting hide/show state into
+# configure_column() below.
+_HIDEABLE_COLS = {
+    "keywords":              "Keywords",
+    "open_access":           "Access",
+    "service_category":      "Family",
+    "wos_id":                "WoS ID",
+    "affiliations":          "All Affiliations",
+    "wos_categories_parsed": "WoS Subject Categories",
+    "addresses":             "Raw Addresses",
+    "funding_orgs":          "Funding (raw text)",
+    "countries_all":         "All Countries",
+    "institutions_all":      "All Institutions",
+    "funding_agencies":      "Funding Agencies (matched)",
+}
+_visible_extra = st.multiselect(
+    "Show additional columns",
+    options=list(_HIDEABLE_COLS.keys()),
+    default=[],
+    format_func=lambda x: _HIDEABLE_COLS[x],
+)
+
 _doi_renderer = JsCode("""
 class CustomDoiRenderer {
     init(params) {
@@ -1039,9 +1092,12 @@ function(params) {
 _grid_cols = [
     "title", "authors", "pub_year", "source_title", "times_cited",
     "open_access", "ecosystem_service", "service_category", "category",
-    "technology", "doi",
+    "technology", "keywords", "doi",
     # NLP-derived columns
     "country_first", "institution_top", "technology_cluster",
+    # available via "Show additional columns" below.
+    "wos_id", "affiliations", "wos_categories_parsed", "addresses",
+    "funding_orgs", "countries_all", "institutions_all", "funding_agencies",
 ]
 
 if len(df) == 0:
@@ -1064,18 +1120,39 @@ gb.configure_column("authors", header_name="Authors", width=180, minWidth=180, t
 gb.configure_column("pub_year", header_name="Year", width=80, minWidth=80, type=["numericColumn"])
 gb.configure_column("source_title", header_name="Journal", width=180, minWidth=180, tooltipField="source_title")
 gb.configure_column("times_cited", header_name="Citations", width=150, minWidth=150, type=["numericColumn"], sort="desc")
-gb.configure_column("open_access", header_name="Access", width=110, minWidth=110, hide=True)
+gb.configure_column("open_access", header_name="Access", width=110, minWidth=110,
+                    hide="open_access" not in _visible_extra)
 
 gb.configure_column("ecosystem_service", header_name="Ecosystem Service", width=200, minWidth=200, tooltipField="ecosystem_service")
-gb.configure_column("service_category", header_name="Family", width=120, minWidth=120, hide=True)
+gb.configure_column("service_category", header_name="Family", width=120, minWidth=120,
+                    hide="service_category" not in _visible_extra)
 gb.configure_column("category", header_name="Paradigm", width=110, minWidth=110, cellStyle=_category_style)
 gb.configure_column("technology", header_name="Technology", width=160, minWidth=160, tooltipField="technology")
+gb.configure_column("keywords", header_name="Keywords", width=260, minWidth=260,
+                    tooltipField="keywords", hide="keywords" not in _visible_extra)
 
 gb.configure_column("doi", header_name="DOI", width=220, minWidth=220, cellRenderer=_doi_renderer)
 
 gb.configure_column("country_first", header_name="Country", width=120, minWidth=120, maxWidth=150)
 gb.configure_column("institution_top", header_name="Institution", width=220, minWidth=220, tooltipField="institution_top")
 gb.configure_column("technology_cluster", header_name="Tech Cluster", width=200, minWidth=200, tooltipField="technology_cluster")
+
+gb.configure_column("wos_id", header_name="WoS ID", width=160, minWidth=160,
+                    hide="wos_id" not in _visible_extra)
+gb.configure_column("affiliations", header_name="All Affiliations", width=280, minWidth=280,
+                    tooltipField="affiliations", hide="affiliations" not in _visible_extra)
+gb.configure_column("wos_categories_parsed", header_name="WoS Subject Categories", width=260, minWidth=260,
+                    tooltipField="wos_categories_parsed", hide="wos_categories_parsed" not in _visible_extra)
+gb.configure_column("addresses", header_name="Raw Addresses", width=280, minWidth=280,
+                    tooltipField="addresses", hide="addresses" not in _visible_extra)
+gb.configure_column("funding_orgs", header_name="Funding (raw text)", width=240, minWidth=240,
+                    tooltipField="funding_orgs", hide="funding_orgs" not in _visible_extra)
+gb.configure_column("countries_all", header_name="All Countries", width=180, minWidth=180,
+                    tooltipField="countries_all", hide="countries_all" not in _visible_extra)
+gb.configure_column("institutions_all", header_name="All Institutions", width=260, minWidth=260,
+                    tooltipField="institutions_all", hide="institutions_all" not in _visible_extra)
+gb.configure_column("funding_agencies", header_name="Funding Agencies (matched)", width=240, minWidth=240,
+                    tooltipField="funding_agencies", hide="funding_agencies" not in _visible_extra)
 
 gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=30)
 gb.configure_grid_options(
@@ -1221,7 +1298,7 @@ with _export_col:
         selected_text = ", ".join(_ALL_EXPORT_COLS[c] for c in _valid_cols[:8])
         if len(_valid_cols) > 8:
             selected_text += " ..."
-        st.caption(f"Selected: {selected_text}")
+        st.caption(f"Select: {selected_text}")
 
     if _valid_cols:
         _csv = df[_valid_cols].to_csv(index=False).encode("utf-8")
