@@ -85,99 +85,89 @@ div.block-container { max-width: 1080px; padding-left: 2rem; padding-right: 2rem
 /* ── Section 0: Category pills ───────────────────────────── */
 .cat-pill {
     display: inline-block;
-    font: 500 0.65rem/1 'Inter', sans-serif; /* 稍微缩小字号，提升精致度 */
-    letter-spacing: .18em; text-transform: uppercase; /* 拉开字距 */
-    padding: 5px 14px; border-radius: 20px;
+    font: 500 0.67rem/1 'Inter', sans-serif;
+    letter-spacing: .16em; text-transform: uppercase;
+    padding: 4px 12px; border-radius: 20px;
     margin: 1.4rem 0 .7rem;
 }
-.cp-provisioning { background: rgba(168,116,14,.10); color: #8A5E0B; }
-.cp-cultural      { background: rgba(95,87,189,.10);  color: #5048A8; }
-.cp-regulating    { background: rgba(29,140,105,.10); color: #1A7A5C; }
-.cp-supporting    { background: rgba(61,122,82,.10);  color: #356B49; }
+.cp-provisioning { background: rgba(168,116,14,.12); color: #8A5E0B; }
+.cp-cultural      { background: rgba(95,87,189,.12);  color: #5048A8; }
+.cp-regulating    { background: rgba(29,140,105,.12); color: #1A7A5C; }
+.cp-supporting    { background: rgba(61,122,82,.12);  color: #356B49; }
 
 /* ── Section 0: Counter ──────────────────────────────────── */
 .ctr {
-    text-align: center; background: #FAF9F6; 
-    border: 1px solid #EAE6DF; border-radius: 12px; 
-    padding: 1.8rem 2rem; margin: 1.2rem 0 1rem;
-    box-shadow: 0 1px 3px rgba(42,39,34,.02);
+    text-align: center; background: #FBF9F5;
+    border: 1px solid #E5E1DA; border-radius: 10px;
+    padding: 1.6rem 2rem; margin: 1.2rem 0 1rem;
 }
 .ctr-n   { font: 700 3.2rem/1 'Playfair Display', serif; color: #3D7A52; }
-.ctr-sub { font: 300 .82rem/1 'Inter', sans-serif; color: #8A847B; margin-top: 8px; }
+.ctr-sub { font: 300 .82rem/1 'Inter', sans-serif; color: #8A847B; margin-top: 6px; }
 
 /* ── Section 0: Insight panel ────────────────────────────── */
 .insight {
-    background: linear-gradient(145deg, #F5F8F5 0%, #FAF9F6 100%); 
-    border: 1px solid #D1E0D5; 
-    border-radius: 12px;
-    padding: 2.2rem 2.5rem; margin-top: 1rem;
-    box-shadow: 0 4px 12px rgba(42,39,34,.03);
+    background: linear-gradient(145deg, #EEF4EE 0%, #F7F5F1 70%);
+    border: 1px solid #C5DBCB; border-radius: 12px;
+    padding: 2rem 2.4rem; margin-top: 1rem;
 }
-.insight-title { font: 700 1.5rem/1.25 'Playfair Display', serif; color: #2A2722; margin-bottom: 1rem; }
-.insight-body  { font: 300 .95rem/1.85 'Inter', sans-serif; color: #4A453E; margin-bottom: 1.4rem; }
-.hl-red   { font: 700 1.6rem/1 'Playfair Display', serif; color: #B05A2E; margin: 0 2px; }
-.hl-green { font: 700 1.6rem/1 'Playfair Display', serif; color: #3D7A52; margin: 0 2px; }
-
-.tag-sec-lbl { font: 500 .62rem/1 'Inter', sans-serif; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 8px; }
-.lbl-gap { color: #A45025; }
-.lbl-ok  { color: #356B49; }
-.tag { display: inline-block; margin: 4px 4px 4px 0; padding: 4px 10px; border-radius: 20px; font: 400 .72rem/1 'Inter', sans-serif; }
-.tag-gap { background: rgba(176,90,46,.06); color: #97491F; border: 1px solid rgba(176,90,46,.20); }
-.tag-ok  { background: rgba(61,122,82,.06); color: #356B49; border: 1px solid rgba(61,122,82,.20); }
+.insight-title { font: 700 1.55rem/1.25 'Playfair Display', serif; color: #2A2722; margin-bottom: .9rem; }
+.insight-body  { font: 400 .96rem/1.85 'Inter', sans-serif; color: #4A453E; margin-bottom: 1.3rem; }
+.hl-red   { font: 700 1.7rem/1 'Playfair Display', serif; color: #B05A2E; }
+.hl-green { font: 700 1.7rem/1 'Playfair Display', serif; color: #3D7A52; }
+.tag-sec-lbl { font: 500 .64rem/1 'Inter', sans-serif; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 5px; }
+.lbl-gap { color: #B05A2E; }
+.lbl-ok  { color: #3D7A52; }
+.tag { display: inline-block; margin: 3px 3px; padding: 3px 9px; border-radius: 20px; font: 400 .7rem/1 'Inter', sans-serif; }
+.tag-gap { background: rgba(176,90,46,.10); color: #97491F; border: 1px solid rgba(176,90,46,.25); }
+.tag-ok  { background: rgba(61,122,82,.10); color: #356B49; border: 1px solid rgba(61,122,82,.25); }
 .insight-cta   { font: 500 .75rem/1 'Inter', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #3D7A52; }
-.insight-empty { text-align: center; padding: 3rem 2rem; color: #A8A196; font: 300 .9rem/1.6 'Inter', sans-serif; }
+.insight-empty { text-align: center; padding: 2rem; color: #B8B0A4; font: 300 .88rem/1.6 'Inter', sans-serif; }
 
-/* ── Interactive Pills (Buttons) ─────────────────────────── */
 div:has(> button[data-variant="pills"]) {
     justify-content: center !important;
-    gap: 12px 10px !important;
-    padding: 10px 0 24px 0;
+    gap: 14px 12px !important;
+    padding: 10px 0 20px 0;
 }
 
-button[data-testid="stBaseButton-pills"],
-button[data-testid="stBaseButton-pillsActive"] {
-    background-color: #FFFFFF !important; 
-    border: 1px solid #DEDAD3 !important;
+button[data-variant="pills"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E5E1DA !important;
     border-radius: 30px !important;
-    padding: 8px 24px !important; 
+    padding: 10px 28px !important; 
     font-family: 'Inter', sans-serif !important;
-    font-size: 0.88rem !important; 
-    font-weight: 400 !important;
-    letter-spacing: 0.01em !important; 
-    color: #5C564D !important;
-    box-shadow: 0 1px 2px rgba(42,39,34,0.04) !important;
-    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    font-size: 0.95rem !important; 
+    letter-spacing: 0.02em !important; 
+    color: #6B665E !important;
+    box-shadow: 0 2px 4px rgba(42,39,34,0.02) !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     height: auto !important; 
-    min-height: 44px !important; 
-}
- 
-button[data-testid="stBaseButton-pills"]:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 3px 6px rgba(61,122,82,0.06) !important;
-    border-color: #8EB39B !important; 
-    color: #2E5C3E !important;
-}
- 
-button[data-testid="stBaseButton-pills"]:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 1px 2px rgba(61,122,82,0.04) !important;
+    min-height: 62px !important; 
 }
 
-button[data-testid="stBaseButton-pillsActive"] {
-    background-color: #EEF4EE !important; 
-    border: 1px solid #3D7A52 !important; 
-    color: #2A5438 !important;
+button[data-variant="pills"]:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 6px 12px rgba(61,122,82,0.08) !important;
+    border-color: rgba(61,122,82,0.3) !important;
+    color: #2A2722 !important;
+}
+
+button[data-variant="pills"]:active {
+    transform: translateY(1px) !important;
+    box-shadow: 0 1px 2px rgba(61,122,82,0.1) !important;
+}
+
+button[data-variant="pills"][data-selected="true"],
+button[data-variant="pills"][aria-pressed="true"] {
+    background-color: rgba(61, 122, 82, 0.08) !important;
+    border: 1.5px solid #3D7A52 !important;
+    color: #356B49 !important;
     font-weight: 500 !important;
-    box-shadow: inset 0 1px 2px rgba(61,122,82,0.05) !important; 
+    box-shadow: 0 4px 10px rgba(61, 122, 82, 0.1) !important;
     transform: translateY(0) !important; 
 }
-button[data-testid="stBaseButton-pillsActive"]:hover {
-    background-color: #E6EFE6 !important;
-    border: 1px solid #2A5438 !important;
-}
- 
-button[data-testid*="stBaseButton-pill"]:focus-visible {
-    box-shadow: 0 0 0 2px rgba(61,122,82,0.3) !important; 
+
+button[data-variant="pills"]:focus-visible {
+    box-shadow: none !important;
     outline: none !important;
 }
 
