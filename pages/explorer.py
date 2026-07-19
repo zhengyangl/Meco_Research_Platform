@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
-from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode,
+from st_aggrid import (AgGrid, GridOptionsBuilder, GridUpdateMode,
                        JsCode, ColumnsAutoSizeMode)
 import urllib.parse
 
@@ -209,10 +209,6 @@ _MEDIAN_CITED = int(df_all["times_cited"].median())
 
 @st.cache_data
 def load_abstracts():
-    """Lazy-loaded abstract lookup. Returns a dict {wos_id: abstract} —
-    dict lookup is O(1) per row, versus repeatedly filtering a DataFrame.
-    Cached separately from the main corpus so cold-start time for the
-    main table isn't affected."""
     try:
         _abs_df = pd.read_parquet(_DATA_DIR / "abstracts.parquet")
         return dict(zip(_abs_df["wos_id"], _abs_df["abstract"]))
@@ -359,78 +355,43 @@ with st.sidebar:
 # ══════════════════════════
 # APPLY FILTERS
 # ══════════════════════════
-# Wrapped in @st.cache_data so that interactions which don't change any
-# filter (e.g. clicking a row in the table below to preview its abstract)
-# skip re-running these ~10 boolean masks over 31k+ rows. The leading
-# underscore on _df_all tells Streamlit's cache NOT to hash that argument
-# (hashing a large DataFrame on every rerun would itself be slow) — the
-# cache instead keys off the filter values themselves, which are cheap
-# small tuples/strings.
-@st.cache_data
-def _apply_filters(_df_all, year_range, category, family, service, journal,
-                    oa, min_cit, search_query, country, institution,
-                    tech_cluster, funding):
-    df = _df_all
-    df = df[(df["pub_year"] >= year_range[0]) & (df["pub_year"] <= year_range[1])]
-    if category: df = df[df["category"].isin(category)]
-    if family:   df = df[df["service_category"].isin(family)]
-    if service:  df = df[df["ecosystem_service"].isin(service)]
-    if journal:  df = df[df["journal_bucket"].isin(journal)]
-    if oa:       df = df[df["open_access"].isin(oa)]
-    if min_cit > 0: df = df[df["times_cited"] >= min_cit]
+df = df_all
+df = df[(df["pub_year"] >= st.session_state.f_year[0]) & (df["pub_year"] <= st.session_state.f_year[1])]
+if st.session_state.f_category: df = df[df["category"].isin(st.session_state.f_category)]
+if st.session_state.f_family:   df = df[df["service_category"].isin(st.session_state.f_family)]
+if st.session_state.f_service:  df = df[df["ecosystem_service"].isin(st.session_state.f_service)]
+if st.session_state.f_journal:  df = df[df["journal_bucket"].isin(st.session_state.f_journal)]
+if st.session_state.f_oa:       df = df[df["open_access"].isin(st.session_state.f_oa)]
+if st.session_state.f_min_cit > 0: df = df[df["times_cited"] >= st.session_state.f_min_cit]
 
-    if search_query:
-        # Whole-query substring match, OR'd across the paper's own content
-        # fields only. Deliberately excludes institution/country/journal —
-        # those are structured dimensions better served by the sidebar
-        # filters, and including them here caused confusing false-positive
-        # matches (e.g. "climate change" incidentally matching an unrelated
-        # institution address).
-        q = search_query.lower()
-        _search_fields = ["title", "authors", "keywords", "technology"]
-        mask = pd.Series(False, index=df.index)
-        for field in _search_fields:
-            mask |= df[field].fillna("").str.lower().str.contains(q, na=False, regex=False)
-        df = df[mask]
+if f_search:
+    q = f_search.lower()
+    _search_fields = ["title", "authors", "keywords", "technology"]
+    mask = pd.Series(False, index=df.index)
+    for field in _search_fields:
+        mask |= df[field].fillna("").str.lower().str.contains(q, na=False, regex=False)
+    df = df[mask]
 
-    if country:
-        df = df[df["country_first"].isin(country)]
+# New NLP-derived filters
+if st.session_state.f_country:
+    df = df[df["country_first"].isin(st.session_state.f_country)]
 
-    if institution:
-        df = df[df["institution_top"].isin(institution)]
+if st.session_state.f_institution:
+    df = df[df["institution_top"].isin(st.session_state.f_institution)]
 
-    if tech_cluster:
-        df = df[df["technology_cluster"].isin(tech_cluster)]
+if st.session_state.f_tech_cluster:
+    df = df[df["technology_cluster"].isin(st.session_state.f_tech_cluster)]
 
-    if funding:
-        # funding_agencies is pipe-separated (e.g. "NSF | NIH").
-        # Check if any selected agency appears as an exact element in the list.
-        _selected = set(funding)
-        _funding_mask = df["funding_agencies"].fillna("").apply(
-            lambda x: bool(_selected.intersection(
-                {s.strip() for s in x.split("|")}
-            ))
-        )
-        df = df[_funding_mask]
-
-    return df
-
-
-df = _apply_filters(
-    df_all,
-    tuple(st.session_state.f_year),
-    tuple(st.session_state.f_category),
-    tuple(st.session_state.f_family),
-    tuple(st.session_state.f_service),
-    tuple(st.session_state.f_journal),
-    tuple(st.session_state.f_oa),
-    st.session_state.f_min_cit,
-    f_search,
-    tuple(st.session_state.f_country),
-    tuple(st.session_state.f_institution),
-    tuple(st.session_state.f_tech_cluster),
-    tuple(st.session_state.f_funding),
-)
+if st.session_state.f_funding:
+    # funding_agencies is pipe-separated (e.g. "NSF | NIH").
+    # Check if any selected agency appears as an exact element in the list.
+    _selected = set(st.session_state.f_funding)
+    _funding_mask = df["funding_agencies"].fillna("").apply(
+        lambda x: bool(_selected.intersection(
+            {s.strip() for s in x.split("|")}
+        ))
+    )
+    df = df[_funding_mask]
 
 # ═══════════════════════════════════════
 # MAIN AREA: HEADER + HEALTH BAR
@@ -1223,58 +1184,17 @@ _custom_css = {
     }
 }
 
-gb.configure_selection(selection_mode="single", use_checkbox=False)
-
-_grid_response = AgGrid(
+AgGrid(
     df_grid,
     gridOptions=gb.build(),
     height=600,
-    theme="balham", 
+    theme="balham",
     allow_unsafe_jscode=True,
-    update_mode=GridUpdateMode.SELECTION_CHANGED,
-    data_return_mode=DataReturnMode.AS_INPUT,
-    reload_data=False,
+    update_mode=GridUpdateMode.NO_UPDATE,
     columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
     enable_enterprise_modules=False,
     custom_css=_custom_css,
-    key="main_grid",
 )
-
-# ── Selected-row detail panel (abstract preview) ────────────────
-# AgGrid Community has no master-detail row expansion (Enterprise-only),
-# so we surface the same idea in plain Streamlit: click a row, see its
-# full record + abstract below the table.
-_selected = _grid_response.get("selected_rows")
-if _selected is not None and len(_selected) > 0:
-    _sel_row = _selected.iloc[0] if hasattr(_selected, "iloc") else _selected[0]
-    _sel_wos_id = _sel_row.get("wos_id") if hasattr(_sel_row, "get") else _sel_row["wos_id"]
-    _abstract_text = ABSTRACTS.get(_sel_wos_id)
-
-    with st.expander(f"📄 {_sel_row.get('title', 'Selected paper')}", expanded=True):
-        _meta_bits = []
-        if _sel_row.get("authors"):
-            _meta_bits.append(str(_sel_row["authors"]))
-        if _sel_row.get("pub_year"):
-            _meta_bits.append(str(int(_sel_row["pub_year"])))
-        if _sel_row.get("source_title"):
-            _meta_bits.append(str(_sel_row["source_title"]))
-        st.caption(" · ".join(_meta_bits))
-
-        if _abstract_text:
-            _TRUNCATE_AT = 500
-            if len(_abstract_text) > _TRUNCATE_AT:
-                st.write(_abstract_text[:_TRUNCATE_AT].rsplit(" ", 1)[0] + " …")
-                st.caption(
-                    "Full abstract available in CSV export below "
-                    "(select the “Abstract” column)."
-                )
-            else:
-                st.write(_abstract_text)
-        else:
-            st.caption("No abstract available for this paper.")
-
-        if _sel_row.get("doi"):
-            st.markdown(f"[View on publisher site ↗](https://doi.org/{_sel_row['doi']})")
             
 # ════════════════════════════════════════════════════════════════
 # METHODOLOGY PANEL 
@@ -1323,84 +1243,73 @@ Aggregate generated: {META.get("generated_at", "—")}*
 # EXPORT
 # ════════════════════════════════════════════════════════════════
 st.markdown('<div style="margin-top:1.0rem;"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div style="font: 600 .65rem/1.2 Inter, sans-serif; '
+    'letter-spacing: .05em; color: #8A847B; margin-bottom: 0.4rem; '
+    'text-transform: uppercase;">Export Data</div>',
+    unsafe_allow_html=True
+)
+_ALL_EXPORT_COLS = {
+    "wos_id":               "WoS ID",
+    "doi":                  "DOI",
+    "title":                "Title",
+    "authors":              "Authors",
+    "pub_year":             "Year",
+    "source_title":         "Journal",
+    "times_cited":          "Citations",
+    "open_access":          "Open Access",
+    "ecosystem_service":    "Ecosystem Service",
+    "service_category":     "Service Family",
+    "category":             "Paradigm (R/E/S)",
+    "technology":           "Technology",
+    "technology_cluster":   "Tech Cluster",
+    "country_first":        "Country",
+    "institution_top":      "Institution",
+    "countries_all":        "All Countries",
+    "institutions_all":     "All Institutions",
+    "funding_agencies":     "Funding Agencies",
+    "wos_categories_parsed":"WoS Categories",
+    "keywords":             "Keywords",
+    "addresses":            "Addresses",
+    "funding_orgs":         "Funding Orgs (raw)",
+    "abstract":             "Abstract (full text)",
+}
+_DEFAULT_EXPORT = [
+    "wos_id", "doi", "title", "authors", "pub_year", "source_title",
+    "times_cited", "ecosystem_service", "category", "technology",
+    "technology_cluster", "country_first", "institution_top",
+]
+_selected_cols = st.multiselect(
+    "Columns to export",
+    options=list(_ALL_EXPORT_COLS.keys()),
+    default=_DEFAULT_EXPORT,
+    format_func=lambda x: _ALL_EXPORT_COLS[x],
+    label_visibility="collapsed",
+)
+if not _selected_cols:
+    _selected_cols = _DEFAULT_EXPORT.copy()
 
-_export_col = st.container()
-with _export_col:
-    st.markdown(
-        '<div style="font: 600 .65rem/1.2 Inter, sans-serif; '
-        'letter-spacing: .05em; color: #8A847B; margin-bottom: 0.4rem; '
-        'text-transform: uppercase;">Export Data</div>',
-        unsafe_allow_html=True
+# "abstract" is intentionally NOT a column on `df` — it lives in the
+# separate ABSTRACTS dict and is joined in only at export time below.
+_valid_cols = [c for c in _selected_cols if c in df.columns or c == "abstract"]
+
+if _valid_cols:
+    selected_text = ", ".join(_ALL_EXPORT_COLS[c] for c in _valid_cols[:8])
+    if len(_valid_cols) > 8:
+        selected_text += " ..."
+    st.caption(f"Selected: {selected_text}")
+
+    _export_df = df[[c for c in _valid_cols if c != "abstract"]].copy()
+    if "abstract" in _valid_cols:
+        _export_df["abstract"] = df["wos_id"].map(ABSTRACTS)
+        _export_df = _export_df[_valid_cols]  # restore user's column order
+
+    _csv = _export_df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label=f"⬇ Download {len(df):,} records · {len(_valid_cols)} fields",
+        data=_csv,
+        file_name=f"meco_export_{len(df)}rows.csv",
+        mime="text/csv",
     )
-
-    _ALL_EXPORT_COLS = {
-        "wos_id":               "WoS ID",
-        "doi":                  "DOI",
-        "title":                "Title",
-        "authors":              "Authors",
-        "pub_year":             "Year",
-        "source_title":         "Journal",
-        "times_cited":          "Citations",
-        "open_access":          "Open Access",
-        "ecosystem_service":    "Ecosystem Service",
-        "service_category":     "Service Family",
-        "category":             "Paradigm (R/E/S)",
-        "technology":           "Technology",
-        "technology_cluster":   "Tech Cluster",
-        "country_first":        "Country",
-        "institution_top":      "Institution",
-        "countries_all":        "All Countries",
-        "institutions_all":     "All Institutions",
-        "funding_agencies":     "Funding Agencies",
-        "wos_categories_parsed":"WoS Categories",
-        "keywords":             "Keywords",
-        "addresses":            "Addresses",
-        "funding_orgs":         "Funding Orgs (raw)",
-        "abstract":             "Abstract (full text)",
-    }
-
-    _DEFAULT_EXPORT = [
-        "wos_id", "doi", "title", "authors", "pub_year", "source_title",
-        "times_cited", "ecosystem_service", "category", "technology",
-        "technology_cluster", "country_first", "institution_top",
-    ]
-
-    _selected_cols = st.multiselect(
-        "Columns to export",
-        options=list(_ALL_EXPORT_COLS.keys()),
-        default=_DEFAULT_EXPORT,
-        format_func=lambda x: _ALL_EXPORT_COLS[x],
-        label_visibility="collapsed",
-    )
-
-    if not _selected_cols: 
-        _selected_cols = _DEFAULT_EXPORT.copy()
-
-    _valid_cols = [c for c in _selected_cols if c in df.columns]
-
-    if _valid_cols:
-        selected_text = ", ".join(_ALL_EXPORT_COLS[c] for c in _valid_cols[:8])
-        if len(_valid_cols) > 8:
-            selected_text += " ..."
-        st.caption(f"Select: {selected_text}")
-
-    if _valid_cols:
-        # "abstract" isn't a column on the main dataframe (kept out for
-        # performance — see load_abstracts()). Only join it in when the
-        # user actually asks for it in the export, and only for the rows
-        # being exported, so this stays cheap.
-        _export_df = df[[c for c in _valid_cols if c != "abstract"]].copy()
-        if "abstract" in _valid_cols:
-            _export_df["abstract"] = df["wos_id"].map(ABSTRACTS)
-            _export_df = _export_df[_valid_cols]  # restore user's column order
-
-        _csv = _export_df.to_csv(index=False).encode("utf-8")
-
-        st.download_button(
-            label=f"⬇ Download {len(df):,} records · {len(_valid_cols)} fields",
-            data=_csv,
-            file_name=f"meco_export_{len(df)}rows.csv",
-            mime="text/csv",
-        )
-    else:
-        st.warning("No valid columns available for export.")
+else:
+    st.warning("No valid columns available for export.")
