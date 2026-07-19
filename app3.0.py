@@ -312,8 +312,11 @@ div[data-testid="stButton"] button:active {
 .response-body  { font: 300 .92rem/1.85 'Inter', sans-serif !important; color: #4A453E !important; margin-bottom: 0 !important; }
 
 /* option 1 */
-.response-body em { color: #2A2722 !important; font-style: italic !important;font-weight: 500 !important; }
+.response-body em { color: #356B49 !important; font-style: normal !important; font-weight: 500 !important; }
 .response-body b  { color: #2A2722 !important; font-weight: 500 !important; }
+
+/*.response-body em { color: #2A2722 !important; font-style: italic !important;font-weight: 500 !important; }*/
+/*.response-body b  { color: #2A2722 !important; font-weight: 500 !important; }*/
 
 /* option 2 green color */
 /*.response-body em { color: #3D7A52 !important; font-style: italic !important; font-weight: 500 !important; }
