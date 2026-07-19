@@ -423,7 +423,6 @@ st.markdown(
         padding-bottom: 0.7rem; border-bottom: 1px solid #E2E8F0;
     ">
       data as of {META.get("dataset_version", "—")}
-      # &nbsp;·&nbsp; classifier: GPT-4.1
       &nbsp;·&nbsp; open access: {_OA_PCT}%
       &nbsp;·&nbsp; corpus median citations: {_MEDIAN_CITED}
     </div>""",
