@@ -64,9 +64,10 @@ div.block-container { max-width: 1080px; padding-left: 2rem; padding-right: 2rem
 
 /* ── Section 0: Hero ──────────────────────────────────────── */
 .hero-eyebrow { font-size: 0.7rem; margin-bottom: .9rem; }
-.hero-title {
-    font: 700 3.8rem/1.05 'Playfair Display', serif;
-    color: #2A2722; margin-bottom: .9rem;
+h1.hero-title {
+    font: 700 3.8rem/1.05 'Playfair Display', serif !important;
+    color: #2A2722 !important;
+    margin-bottom: .9rem !important;
 }
 .hero-sub {
     font: 300 1.08rem/1.8 'Inter', sans-serif;
