@@ -445,33 +445,29 @@ def raw_name(pretty: str) -> str:
 # SHARED CONSTANTS
 # ════════════════════════════════════════════════════════════════
 RESEARCH_GAP_THRESHOLD = 500  # papers; services below this are flagged
-
-# Service icon + description — these stay as code constants because they're
-# editorial decisions (which emoji, how to describe each service) rather
-# than data. Paper counts now come from JSON.
 _SERVICE_META = {
-    "Biochemicals":            {"icon": "🧬", "desc": "Molecules used in medicine"},
-    "Fibre/Hide/Wood":         {"icon": "🌲", "desc": "Materials used for clothing or construction"},
-    "Fuel":                    {"icon": "⚡", "desc": "Materials used to generate energy"},
-    "Potable Water":           {"icon": "💧", "desc": "Fresh water that is safe to consume"},
-    "Food":                    {"icon": "🌾", "desc": "Nutritious ingredients from wild & domesticated habitats"},
-    "Biodiversity":            {"icon": "🦋", "desc": "The variety of living species on Earth"},
-    "Disease Regulation":      {"icon": "🦠", "desc": "Natural systems reducing disease and disease vectors"},
-    "Waste Treatment":         {"icon": "♻️", "desc": "Filtering and treating organic and chemical waste"},
-    "Climate Regulation":      {"icon": "🌡️", "desc": "Stabilization of climatic conditions"},
-    "Atmospheric Regulation":  {"icon": "💨", "desc": "Production and consumption of essential molecules (O₂)"},
-    "Water Regulation":        {"icon": "🌊", "desc": "Timing and volume of water distribution across land"},
-    "Pollination":             {"icon": "🐝", "desc": "Distribution of pollen seeds for plant reproduction"},
-    "Coastline Regulation":    {"icon": "🏖️", "desc": "Stabilization of coastal lands via mangroves and reefs"},
-    "Primary Production":      {"icon": "☀️", "desc": "Creation of sugars from sunlight — base of all food chains"},
-    "Soil Formation":          {"icon": "🌱", "desc": "The ongoing creation of new fertile soil"},
-    "Nutrient Cycling":        {"icon": "🔄", "desc": "The movement of nutrients through ecosystems"},
-    "Inspiration/Education":   {"icon": "🎨", "desc": "Art, science, music, literature, and design"},
-    "Aesthetic":               {"icon": "🌸", "desc": "Mental and physical benefits of natural beauty"},
-    "Recreation":              {"icon": "🏕️", "desc": "Physical and mental health from nature experiences"},
-    "Cultural Heritage":       {"icon": "🏛️", "desc": "Societal value placed upon landscapes"},
-    "Spiritual":               {"icon": "🕊️", "desc": "Support for the spiritual lives of people"},
-    "Cultural Identity":       {"icon": "🌍", "desc": "Individual and societal identity from human-nature bonds"},
+    "Biochemicals":            {"icon": "", "desc": "Molecules used in medicine"},
+    "Fibre/Hide/Wood":         {"icon": "", "desc": "Materials used for clothing or construction"},
+    "Fuel":                    {"icon": "", "desc": "Materials used to generate energy"},
+    "Potable Water":           {"icon": "", "desc": "Fresh water that is safe to consume"},
+    "Food":                    {"icon": "", "desc": "Nutritious ingredients from wild & domesticated habitats"},
+    "Biodiversity":            {"icon": "", "desc": "The variety of living species on Earth"},
+    "Disease Regulation":      {"icon": "", "desc": "Natural systems reducing disease and disease vectors"},
+    "Waste Treatment":         {"icon": "️", "desc": "Filtering and treating organic and chemical waste"},
+    "Climate Regulation":      {"icon": "️", "desc": "Stabilization of climatic conditions"},
+    "Atmospheric Regulation":  {"icon": "", "desc": "Production and consumption of essential molecules (O₂)"},
+    "Water Regulation":        {"icon": "", "desc": "Timing and volume of water distribution across land"},
+    "Pollination":             {"icon": "", "desc": "Distribution of pollen seeds for plant reproduction"},
+    "Coastline Regulation":    {"icon": "️", "desc": "Stabilization of coastal lands via mangroves and reefs"},
+    "Primary Production":      {"icon": "️", "desc": "Creation of sugars from sunlight — base of all food chains"},
+    "Soil Formation":          {"icon": "", "desc": "The ongoing creation of new fertile soil"},
+    "Nutrient Cycling":        {"icon": "", "desc": "The movement of nutrients through ecosystems"},
+    "Inspiration/Education":   {"icon": "", "desc": "Art, science, music, literature, and design"},
+    "Aesthetic":               {"icon": "", "desc": "Mental and physical benefits of natural beauty"},
+    "Recreation":              {"icon": "️", "desc": "Physical and mental health from nature experiences"},
+    "Cultural Heritage":       {"icon": "️", "desc": "Societal value placed upon landscapes"},
+    "Spiritual":               {"icon": "️", "desc": "Support for the spiritual lives of people"},
+    "Cultural Identity":       {"icon": "", "desc": "Individual and societal identity from human-nature bonds"},
 }
 
 # Build the same nested-dict structure the rest of the code expects, but now
@@ -516,7 +512,6 @@ if "identity" not in st.session_state:
 
 if "spotlight_idx" not in st.session_state:   # Section 4 carousel position
     st.session_state.spotlight_idx = 0
-
 
 # ════════════════════════════════════════════════════════════════
 # ONE-TIME OPENING ANIMATION 
@@ -982,17 +977,17 @@ st.markdown('<div id="sec-feel" class="sec-anchor"></div>', unsafe_allow_html=Tr
 
 # ── Everyday actions → the ecosystem services they quietly invoke ──
 _EVERYDAY_ACTIONS = {
-    "☕ Drank coffee or tea":                 ["Potable Water", "Pollination", "Soil Formation", "Nutrient Cycling"],
-    "🍳 Ate a meal with fresh produce":       ["Food", "Pollination", "Primary Production", "Biodiversity"],
-    "👕 Put on cotton or wool clothing":      ["Fibre/Hide/Wood", "Soil Formation", "Nutrient Cycling"], # Raw DB Name
-    "🌬️ Took a deep breath outside":          ["Atmospheric Regulation", "Climate Regulation", "Disease Regulation"], # Raw DB Name
-    "🚰 Washed up or flushed the toilet":     ["Potable Water", "Waste Treatment", "Water Regulation"],
-    "💊 Took medication or vitamins":          ["Biochemicals"],
-    "⚡ Turned on the heating or AC":          ["Fuel", "Climate Regulation"],
-    "🌳 Walked in a park or noticed nature":  ["Aesthetic", "Recreation", "Inspiration/Education"], # Raw DB Name
-    "📦 Used paper or wooden products":       ["Fibre/Hide/Wood", "Primary Production"], # Raw DB Name
-    "🕊️ Felt tied to your local landscape":   ["Cultural Heritage", "Spiritual", "Cultural Identity"],
-    "🦋 Saw a bird, insect, or wild animal":  ["Biodiversity", "Pollination", "Coastline Regulation"],
+    "Drank coffee or tea":                 ["Potable Water", "Pollination", "Soil Formation", "Nutrient Cycling"],
+    "Ate a meal with fresh produce":       ["Food", "Pollination", "Primary Production", "Biodiversity"],
+    "Put on cotton or wool clothing":      ["Fibre/Hide/Wood", "Soil Formation", "Nutrient Cycling"], # Raw DB Name
+    "Took a deep breath outside":          ["Atmospheric Regulation", "Climate Regulation", "Disease Regulation"], # Raw DB Name
+    "Washed up or flushed the toilet":     ["Potable Water", "Waste Treatment", "Water Regulation"],
+    "Took medication or vitamins":          ["Biochemicals"],
+    "Turned on the heating or AC":          ["Fuel", "Climate Regulation"],
+    "Walked in a park or noticed nature":  ["Aesthetic", "Recreation", "Inspiration/Education"], # Raw DB Name
+    "Used paper or wooden products":       ["Fibre/Hide/Wood", "Primary Production"], # Raw DB Name
+    "Felt tied to your local landscape":   ["Cultural Heritage", "Spiritual", "Cultural Identity"],
+    "Saw a bird, insect, or wild animal":  ["Biodiversity", "Pollination", "Coastline Regulation"],
 }
 
 # Native pills (Streamlit >= 1.40)
