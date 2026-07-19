@@ -130,32 +130,31 @@ div:has(> button[data-variant="pills"]) {
 }
 
 button[data-variant="pills"] {
-    background-color: #FFFFFF !important;
-    border: 1px solid #E5E1DA !important;
+    background-color: #FDFCFA !important;
+    border: 1px solid #D6D2CC !important;
     border-radius: 30px !important;
     padding: 10px 28px !important; 
     font-family: 'Inter', sans-serif !important;
     font-size: 0.95rem !important; 
+    font-weight: 500 !important;
     letter-spacing: 0.02em !important; 
-    color: #6B665E !important;
-    box-shadow: 0 2px 4px rgba(42,39,34,0.02) !important;
+    color: #4A453E !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     height: auto !important; 
     min-height: 62px !important; 
 }
-
 button[data-variant="pills"]:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 6px 12px rgba(61,122,82,0.08) !important;
-    border-color: rgba(61,122,82,0.3) !important;
-    color: #2A2722 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(61,122,82,0.08) !important;
+    border-color: #3D7A52 !important;
+    background-color: rgba(61,122,82,0.04) !important;
+    color: #2E5C3E !important;
 }
-
 button[data-variant="pills"]:active {
-    transform: translateY(1px) !important;
-    box-shadow: 0 1px 2px rgba(61,122,82,0.1) !important;
+    transform: translateY(0) !important;
+    box-shadow: 0 1px 2px rgba(61,122,82,0.08) !important;
 }
-
 button[data-variant="pills"][data-selected="true"],
 button[data-variant="pills"][aria-pressed="true"] {
     background-color: rgba(61, 122, 82, 0.08) !important;
@@ -165,7 +164,6 @@ button[data-variant="pills"][aria-pressed="true"] {
     box-shadow: 0 4px 10px rgba(61, 122, 82, 0.1) !important;
     transform: translateY(0) !important; 
 }
-
 button[data-variant="pills"]:focus-visible {
     box-shadow: none !important;
     outline: none !important;
