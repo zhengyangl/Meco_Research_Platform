@@ -2,8 +2,7 @@
 MEco Research Dashboard — "Nature Is Not Optional."
 Based on Jacobs et al. (2025)
 
-Run with:
-    streamlit run app.py
+Run with: streamlit run app.py
 """
 
 # ════════════════════════════════════════════════════════════════
@@ -420,11 +419,6 @@ WOS_NET = _load_wos_cooccurrence()      # wos_cooccurrence.json contents
 FRAMING = _load_framing()               # framing.json contents
 
 # ── Service display-name mapping ────────────────────────────────────
-# Database / aggregate.py stores the raw GPT classification values
-# (e.g. 'Fibre/Hide/Wood', 'Atmospheric Regulation') as the source of truth.
-# This dict turns those into the prettier display labels used throughout
-# the narrative page. Anything not in this dict falls through to the raw
-# value, so it's safe to leave the lookup unconditional.
 SERVICE_DISPLAY_NAMES = {
     "Fibre/Hide/Wood":         "Fibre · Hide · Wood",
     "Atmospheric Regulation":  "Atmospheric Reg.",
@@ -437,7 +431,6 @@ def display_name(raw: str) -> str:
 SERVICE_RAW_NAMES = {v: k for k, v in SERVICE_DISPLAY_NAMES.items()}
 def raw_name(pretty: str) -> str:
     return SERVICE_RAW_NAMES.get(pretty, pretty)
-
 
 # ════════════════════════════════════════════════════════════════
 # SHARED CONSTANTS
@@ -468,8 +461,7 @@ _SERVICE_META = {
     "Cultural Identity":       {"icon": "", "desc": "Individual and societal identity from human-nature bonds"},
 }
 
-# Build the same nested-dict structure the rest of the code expects, but now
-# every paper count comes from services_summary.json — no hardcoded values.
+# Build nested-dict structure
 _CAT_CSS_MAP = {"Provisioning": "provisioning", "Cultural": "cultural",
                 "Regulating": "regulating", "Supporting": "supporting"}
 SERVICES = {cat: {"css": _CAT_CSS_MAP[cat], "items": []} for cat in _CAT_CSS_MAP}
@@ -483,9 +475,8 @@ for _s in SVC_SUMMARY["services"]:
         "papers": _s["total"],
     })
 
-# Build _df2 directly from services_summary.json — single source of truth.
-# The display_name() pass keeps the pretty service labels everywhere in the
-# narrative; raw GPT names stay in the database and the data files.
+# Build _df2 directly from services_summary.json.
+# The display_name() pass keeps the pretty service labels everywhere in the narrative;
 _df2 = pd.DataFrame([
     {"service":  display_name(s["service"]),
      "category": s["category"],
@@ -692,7 +683,7 @@ def build_sankey(groups, label_r, label_e, label_s):
     n_groups = len(groups)
     nodes = [label_r, label_e, label_s] + [g["label"] for g in groups]
 
-    # Node colors: sources use paradigm palette; target colors depend on group.
+    # Node colors
     source_colors = [
         "rgba(168,116,14,0.88)",   # Replace amber
         "rgba(29,140,105,0.85)",   # Enhance green
@@ -742,7 +733,6 @@ def build_sankey(groups, label_r, label_e, label_s):
                 link_colors.append(f"rgba({base_rgb},0.22)")
 
     # Node customdata: pre-formatted breakdown strings for hover.
-    # Source nodes → simple total. Target nodes → full R/E/S breakdown.
     node_customdata = []
     for src_idx in range(3):
         node_customdata.append(f"{source_totals[src_idx]:,} papers total")
@@ -761,7 +751,7 @@ def build_sankey(groups, label_r, label_e, label_s):
         else:
             node_customdata.append("(empty)")
 
-    # Manual node positioning — force sources to spread evenly on the left
+    # Manual node positioning
     _node_x = [0.001, 0.001, 0.001] + [0.999] * n_groups
     _node_y = [0.18, 0.7, 0.95] + [
         (i + 0.5) / n_groups for i in range(n_groups)
@@ -917,7 +907,7 @@ st.markdown("""
 /* Stop scrolled-to headings from hiding under the top padding */
 .sec-anchor { display: block; height: 0; scroll-margin-top: 2rem; }
 
-/* ── One-time opening animation (full-screen overlay injected by JS) ─────── */
+/* ── One-time opening animation ─────── */
 .meco-intro {
     position: fixed; inset: 0; z-index: 999999;
     background: #F7F5F1; overflow: hidden; cursor: pointer;
@@ -973,7 +963,7 @@ st.markdown("""
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div id="sec-feel" class="sec-anchor"></div>', unsafe_allow_html=True)
 
-# ── Everyday actions → the ecosystem services they quietly invoke ──
+# ── Everyday actions ──
 _EVERYDAY_ACTIONS = {
     "Drank coffee or tea":                 ["Potable Water", "Pollination", "Soil Formation", "Nutrient Cycling"],
     "Ate a meal with fresh produce":       ["Food", "Pollination", "Primary Production", "Biodiversity"],
@@ -1005,8 +995,6 @@ for action in selected_actions:
     triggered_raw_names.update(_EVERYDAY_ACTIONS[action])
 
 # 2. Sync triggered services into session_state.
-# Keys use display names because downstream UI components reference s["name"].
-# Matching remains based on RAW ecosystem service identifiers.
 for s_cat in SERVICES.values():
     for s_item in s_cat["items"]:
         raw_val = raw_name(s_item["name"])
@@ -1174,9 +1162,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# (The particle field moved to the one-time full-screen opening animation at
-#  the top of the page — see the intro component near the top of this script.)
-
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="s1-bridge">
@@ -1190,13 +1175,13 @@ st.markdown('<div class="chart-label">Biomimetic design paradigms · 2004 – 20
             unsafe_allow_html=True)
 credibility_badge(has_real=True, has_sim=False)
 
-# Real annual data from annual_by_category.json
+# Annual data from annual_by_category.json
 _years        = ANNUAL["years"]
 _replace_data = ANNUAL["replace"]
 _enhance_data = ANNUAL["enhance"]
 _support_data = ANNUAL["support"]
 
-# Compute real paradigm percentages for legend labels
+# Compute paradigm percentages for legend labels
 _total_all = sum(_replace_data) + sum(_enhance_data) + sum(_support_data)
 _pct_r = round(sum(_replace_data) / _total_all * 100) if _total_all else 0
 _pct_e = round(sum(_enhance_data) / _total_all * 100) if _total_all else 0
@@ -1306,7 +1291,7 @@ _R_COL2 = {
 }
 _CRITICAL_SERVICES = {"Pollination", "Soil Formation", "Nutrient Cycling"}
 
-# Sort: group by category (family), then largest→smallest within each group.
+# Sort: group by category (family), then largest to smallest within each group.
 _ord2 = pd.concat(
     [_df2[_df2["category"] == _c].sort_values("total", ascending=False)
      for _c in _CAT_ORDER2]
@@ -1359,7 +1344,7 @@ _bar_fig.add_trace(go.Bar(
     marker=dict(color=_R_COL2["support"], line=dict(color="#FFFFFF", width=0.5)),
     hovertemplate="Support: <b>%{x:,}</b><extra></extra>"))
 
-# Total-count annotation at bar end (skip header + zero rows)
+# Total-count annotation at bar end
 for _i, _t in enumerate(_totals):
     if _t > 0:
         _bar_fig.add_annotation(
@@ -1457,7 +1442,7 @@ _bar_fig.add_annotation(
     font=dict(family="Inter, sans-serif"),
 )
 
-# Subtle left accent bar for the insight — a single line, warm tone.
+# accent bar for the insight.
 _bar_fig.add_shape(
     type="line",
     xref="x", yref="y",
@@ -1531,7 +1516,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Bar chart relocated to the Data Explorer.
 st.markdown("""
 <p style="font:300 .74rem/1.7 'Inter',sans-serif;color:#9A938A;margin-top:.4rem;padding-left:2px;">
     Want the exact numbers for all 22 services, sorted and filterable?
@@ -1543,7 +1527,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ════════════════════════════════════════════════════════════════
-# SECTION 2.5 · Nature's Voice 
+# SECTION 2.5 · Nature's Voice Animation
 # ════════════════════════════════════════════════════════════════
 
 _voice_cutscene_html = """
@@ -1693,7 +1677,7 @@ _voice_cutscene_html = """
       ov.addEventListener('click', endCutscene);
 
       // ==========================================
-      // Director's Script Control Center 
+      // Script Control Center 
       // ==========================================
       var T = {
         introIn: 200,        // Stage 1: Fade to black
@@ -1765,11 +1749,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-# ── discipline network — real data from wos_cooccurrence.json ────
-# The number of visible nodes is adjustable; the network re-lays out
-# deterministically for each value. 
-# All positions are stable within a given _S3_TOP_N — no random
-# seeds, no run-to-run drift.
+# ── Discipline Network — data from wos_cooccurrence.json ────
 _S3_TOP_N     = 12
 _S3_PAR_COLOR = {"Replace": "rgba(168,116,14,0.90)",
                  "Enhance": "rgba(29,140,105,0.85)",
@@ -1782,9 +1762,9 @@ _s3_node_names = {n["raw_name"] for n in _s3_nodes}
 _s3_edges = [e for e in WOS_NET["edges"]
              if e["a"] in _s3_node_names and e["b"] in _s3_node_names]
 
-# Cluster centres (hand-anchored — this is the "written down" part of the
+# Cluster centres 
 # hybrid layout: clusters are placed by editorial decision; nodes within a
-# cluster are placed by a deterministic circular arrangement).
+# cluster are placed by a deterministic circular arrangement.
 _S3_CLUSTER_CENTRES = {
     "Hard-Sci":    (-0.9,  0.15),
     "Bio-Applied": ( 1.0,  0.15),
@@ -1793,7 +1773,7 @@ _S3_CLUSTER_CENTRES = {
 
 # ── Deterministic circular layout within each cluster ───────────────
 # Nodes in each cluster are sorted by paper count (largest first), then
-# placed evenly on a circle around the cluster centre. Same _S3_TOP_N →
+# placed evenly on a circle around the cluster centre. Same _S3_TOP_N
 # same layout, every render, on every host.
 import math as _math3
 _s3_by_cluster = {}
@@ -1842,7 +1822,7 @@ st.markdown(f"""
 # ── Figure ──────────────────────────────────────────────────────
 _net3 = go.Figure()
 
-# Cluster background zones — light tinted circles behind each family
+# Cluster background zones
 _S3_CLUSTER_STYLE = {
     "Hard-Sci":    {"fill": "rgba(168,116,14,0.05)", "border": "rgba(168,116,14,0.18)",
                     "label": "HARD-SCI · materials, chemistry, physics", "label_color": "rgba(168,116,14,0.70)"},
@@ -1867,7 +1847,7 @@ for _cluster, _members in _s3_by_cluster.items():
                                     family="Inter, sans-serif"),
                          showarrow=False)
 
-# The absent-discipline annotation — this is what §3 is really about
+# The absent-discipline annotation
 _net3.add_annotation(
     x=0, y=0.75, xref="x", yref="y",
     text="<i>Ecology · Conservation Biology · Environmental Science</i><br>"
@@ -1877,7 +1857,6 @@ _net3.add_annotation(
     align="center", showarrow=False)
 
 # Edge traces
-# Solid for intra-cluster, dashed for cross-cluster. Both weight-scaled.
 _max_cooccur = max((e["cooccur"] for e in _s3_edges), default=1)
 for _e in _s3_edges:
     _x0, _y0 = _s3_pos[_e["a"]]
@@ -1960,12 +1939,11 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# ── RoboBee case study — a example of §3's finding ──────────
+# ── RoboBee case study──────────
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Case study — RoboBee</div>', unsafe_allow_html=True)
-# This case is drawn directly from Jacobs et al. (2025) — not from a corpus
-# query. The paper uses RoboBees as its central worked example; we surface
-# that example here to make the finding concrete.
+# This case is drawn directly from Jacobs et al. (2025). And the paper uses RoboBees as its central worked example; 
+# so we use that example here to make the finding concrete.
 
 credibility_badge(has_real=True, has_sim=True)
 components.html("""
@@ -2045,7 +2023,7 @@ components.html("""
 </body></html>
 """, height=480)
 
-# ── Framing analysis diverging bar — real abstract vocabulary ──────
+# ── Framing analysis diverging bar ──────
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">Framing analysis · abstract vocabulary</div>',
             unsafe_allow_html=True)
@@ -2160,7 +2138,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-# Build groups from live SVC_SUMMARY data.
+# Build groups from SVC_SUMMARY data.
 _real_groups4     = _s4_target_groups()
 _scenario_groups4 = _s4_scenario_groups(_real_groups4, 0.41, 0.39, 0.20)
 
@@ -2328,9 +2306,8 @@ _SPOTLIGHT4 = [
 
 _n_spot = len(_SPOTLIGHT4)
  
-# Build slide blocks + dots from the data; 
+# Build slide blocks and dots from the data
 _slides_html = ""
-
 for _i, _c in enumerate(_SPOTLIGHT4):
     _hidden = "" if _i == 0 else "hidden"
 
