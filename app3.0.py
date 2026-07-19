@@ -311,16 +311,15 @@ div[data-testid="stButton"] button:active {
     box-shadow: 0 2px 6px rgba(42,39,34,.05) !important;
 }
 .response-title { font: 700 1.55rem/1.2 'Playfair Display', serif !important; color: #2A2722 !important; margin-bottom: .7rem !important; }
-.response-body  { font: 300 .92rem/1.85 'Inter', sans-serif !important; color: #4A453E !important; margin-bottom: 1.2rem !important; }
-.response-body em { color: #2E7CB8 !important; font-style: italic !important; }
+.response-body  { font: 300 .92rem/1.85 'Inter', sans-serif !important; color: #4A453E !important; margin-bottom: 0 !important; }
+
+/* option 1 */
+.response-body em { color: #2A2722 !important; font-style: italic !important;font-weight: 500 !important; }
 .response-body b  { color: #2A2722 !important; font-weight: 500 !important; }
-.response-actions { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
-.r-btn {
-    font: 400 .72rem/1 'Inter', sans-serif !important; letter-spacing: .10em !important; text-transform: uppercase !important;
-    padding: 7px 16px !important; border-radius: 20px !important;
-    border: 1px solid rgba(61,122,82,0.40) !important; color: #356B49 !important;
-    background: rgba(61,122,82,0.07) !important; text-decoration: none !important; display: inline-block !important;
-}
+
+/* option 2 green color */
+/*.response-body em { color: #3D7A52 !important; font-style: italic !important; font-weight: 500 !important; }
+/*.response-body b  { color: #2A2722 !important; font-weight: 500 !important; }
 
 /* ── Section 5: Final statement ──────────────────────────── */
 .final-wrap { text-align: center !important; padding: 4rem 2rem 2rem !important; }
@@ -1492,9 +1491,7 @@ st.markdown(
     'callout below.'
     '</p>',
     unsafe_allow_html=True)
-st.plotly_chart(_bar_fig, use_container_width=True,
-                theme=None,height=_fig_h,
-                config={"displayModeBar": False})
+st.plotly_chart(_bar_fig, use_container_width=True,theme=None,height=_fig_h, config={"displayModeBar": False})
 
 
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
@@ -1512,15 +1509,15 @@ st.markdown("""
 st.markdown("""
 <div class="gap-grid">
   <div class="gap-card">
-    <span class="gap-icon">🧬</span>
     <div class="gap-svc">Biochemicals</div>
     <span class="gap-n gap-n-ok">11,079</span>
     <div class="gap-sub">Molecules used in medicine. The single most-studied ES in the
         bio-inspired corpus. Strong commercial incentives drive this concentration.</div>
     <div class="gap-ratio">Reference service</div>
+    <a href="/explorer?service=Biochemicals" target="_blank"
+       style="display:block;margin-top:.6rem;font:500 .68rem/1 'Inter',sans-serif;color:#356B49;text-decoration:none;">View these 11079 papers →</a>
   </div>
   <div class="gap-card critical">
-    <span class="gap-icon">🐝</span>
     <div class="gap-svc">Pollination</div>
     <span class="gap-n">355</span>
     <div class="gap-sub">Responsible for 75% of global food crop varieties.
@@ -1530,7 +1527,6 @@ st.markdown("""
        style="display:block;margin-top:.6rem;font:500 .68rem/1 'Inter',sans-serif;color:#356B49;text-decoration:none;">View these 355 papers →</a>
   </div>
   <div class="gap-card critical">
-    <span class="gap-icon">🔄</span>
     <div class="gap-svc">Nutrient Cycling</div>
     <span class="gap-n">58</span>
     <div class="gap-sub">The movement of nitrogen, phosphorus, and carbon through living systems.
@@ -1542,6 +1538,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Bar chart relocated to the Data Explorer.
 st.markdown("""
 <p style="font:300 .74rem/1.7 'Inter',sans-serif;color:#9A938A;margin-top:.4rem;padding-left:2px;">
     Want the exact numbers for all 22 services, sorted and filterable?
@@ -2304,31 +2301,31 @@ _map4.update_layout(paper_bgcolor="#FFFFFF", geo_bgcolor="#FFFFFF",
                     font=dict(size=11, color="#2A2722", family="Inter, sans-serif")))
 st.plotly_chart(_map4, use_container_width=True, config={"displayModeBar": False})
 
-# ── 3% Spotlight — CAROUSEL (one card at a time, prev/next, dot indicator) ──
+# ── 3% Spotlight — CAROUSEL ──
 st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 st.markdown('<div class="chart-label">The 3% — technologies that chose to support</div>',
             unsafe_allow_html=True)
 
 _SPOTLIGHT4 = [
-    {"icon":"🦪","title":"Living Shoreline Systems","service":"Coastline Regulation · Supporting","n":"~10",
+    {"title":"Living Shoreline Systems","service":"Coastline Regulation · Supporting","n":"~10",
      "link":"/explorer?paradigm=Support&service=Coastline%20Regulation",
      "body":"Bio-inspired breakwater structures modelled on oyster reef geometry to dissipate wave energy "
             "while providing substrate for marine organisms. Unlike concrete seawalls, these structures "
             "<em>support</em> the colonisation and growth of natural reef communities over time — the "
             "technology becomes more effective as nature reclaims it."},
-    {"icon":"🍄","title":"Mycorrhizal Network Inoculants","service":"Primary Production · Supporting","n":"~11",
+    {"title":"Mycorrhizal Network Inoculants","service":"Primary Production · Supporting","n":"~11",
      "link":"/explorer?paradigm=Support&service=Primary%20Production",
      "body":"Fungal network-inspired soil amendments that enhance plant nutrient uptake by inoculating "
             "degraded soils with mycorrhizal consortia. Rather than replacing soil biology, this approach "
             "<em>reactivates</em> dormant underground networks — using the wood-wide web's own logic to "
             "restore carbon sequestration in post-industrial landscapes."},
-    {"icon":"🐝","title":"Pollinator Corridor Mapping","service":"Pollination · Supporting","n":"~14",
+    {"title":"Pollinator Corridor Mapping","service":"Pollination · Supporting","n":"~14",
      "link":"/explorer?paradigm=Support&service=Pollination",
      "body":"Landscape connectivity models derived from bee foraging algorithms to design habitat corridors "
             "that <em>support</em> existing pollinator populations across fragmented agricultural land. "
             "Unlike RoboBees, this technology asks not how to replace bees — but how to make the landscape "
             "legible to them again."},
-    {"icon":"🦫","title":"Beaver-Inspired Wetland Restoration","service":"Water Regulation · Supporting","n":"~39",
+    {"title":"Beaver-Inspired Wetland Restoration","service":"Water Regulation · Supporting","n":"~39",
      "link":"/explorer?paradigm=Support&service=Water%20Regulation",
      "body":"Low-cost structures modelled on beaver dam geometry to slow water flow, raise water tables, and "
             "restore hydrological function in degraded stream systems. Where beaver populations are locally "
@@ -2338,8 +2335,7 @@ _SPOTLIGHT4 = [
 
 _n_spot = len(_SPOTLIGHT4)
  
-# Build slide blocks + dots from the data; switching is handled inside the
-# component by JS, so the arrows live in the SAME card frame as the content.
+# Build slide blocks + dots from the data; 
 _slides_html = ""
 
 for _i, _c in enumerate(_SPOTLIGHT4):
@@ -2348,7 +2344,6 @@ for _i, _c in enumerate(_SPOTLIGHT4):
     _slides_html += f"""
       <div class="mc-slide" {_hidden}>
         <div class="mc-head">
-          <div class="mc-icon">{_c['icon']}</div>
           <div>
             <div class="mc-title">{_c['title']}</div>
             <div class="mc-service">{_c['service']}</div>
@@ -2470,8 +2465,6 @@ _carousel_html = (_carousel_html
                   .replace("__N__", str(_n_spot)))
 components.html(_carousel_html, height=320)
 
-
-
 # ════════════════════════════════════════════════════════════════
 # SECTION 5 · You Belong Here  
 # ════════════════════════════════════════════════════════════════
@@ -2488,12 +2481,7 @@ st.markdown("""
     </p>
     <span class="quote-source">Jacobs et al. (2025) · Biomimetics 10, 784</span>
     <p class="turn-text">
-        You have just seen twenty years of data.
-        You have seen the gaps, the islands, the imbalances.
-        <br><br>
-        But this is not a story about what is missing.
-        <em>It is a story about what is possible</em> —
-        and about who gets to help build it.
+        This is not a story about what is missing. It is a story about what is possible — and <em>it starts with you.</em>
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -2506,22 +2494,23 @@ _n_sel5 = len(_selected5); _n_gap5 = len(_gap5)
 if _n_sel5 == 0:
     _echo_n = "10"
     _echo_body = "of the 22 services nature provides have fewer than 500 bio-inspired research papers."
-    _echo_sub = ("That is not a research gap. That is an open invitation — "
-                 "to every scientist, designer, policymaker, artist, and curious human reading this.")
+    _echo_sub = ("That is not a gap. That is an open invitation.")
+    
 elif _n_gap5 == 0:
     _echo_n = str(_n_sel5)
-    _echo_body = ("services you said you depend on today — and all are relatively well-studied. "
+    _echo_body = ("services you said you depend on — all relatively well-studied. "
                   "But most people's selections aren't.")
-    _echo_sub = "10 of the 22 services have fewer than 500 papers. The gap belongs to all of us."
+    _echo_sub = "10 of the 22 services have fewer than 500 papers."
+    
 else:
     _gap_names5 = ", ".join(f"<em>{s['name']}</em>" for s in _gap5[:3])
     _more5 = f" and {_n_gap5 - 3} more" if _n_gap5 > 3 else ""
     _echo_n = str(_n_gap5)
-    _echo_body = (f"of the {_n_sel5} services you said you depend on today "
+    _echo_body = (f"of the {_n_sel5} services you said you depend on "
                   f"have fewer than 500 bio-inspired research papers — "
                   f"including {_gap_names5}{_more5}.")
-    _echo_sub = ("That gap is not abstract. It is the distance between what you need "
-                 "and what science is currently building. And it has your name on it.")
+    _echo_sub = ("That gap has your name on it.")
+    
 st.markdown(f"""
 <div class="echo-wrap">
     <span class="echo-n">{_echo_n}</span>
@@ -2539,116 +2528,77 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 _IDENTITIES5 = [
-    ("🔬", "Researcher\n/ Scientist", "researcher"),
-    ("✏️", "Designer\n/ Engineer", "designer"),
-    ("📋", "Policymaker\n/ Funder", "policymaker"),
-    ("🎨", "Artist\n/ Writer", "artist"),
-    ("📚", "Educator\n/ Student", "educator"),
-    ("🌍", "Curious\nHuman", "human"),
+    ("Researcher\n/ Scientist", "researcher"),
+    ("Designer\n/ Engineer", "designer"),
+    ("Policymaker\n/ Funder", "policymaker"),
+    ("Artist\n/ Writer", "artist"),
+    ("Educator\n/ Student", "educator"),
+    ("Curious\nHuman", "human"),
 ]
 _cols5 = st.columns(6)
-for _col5, (_icon5, _lbl5, _key5) in zip(_cols5, _IDENTITIES5):
+for _col5, (_lbl5, _key5) in zip(_cols5, _IDENTITIES5):
     with _col5:
-        if st.button(f"{_icon5}  {_lbl5}", key=f"id_{_key5}", use_container_width=True):
+        if st.button(_lbl5, key=f"id_{_key5}", use_container_width=True):
             st.session_state.identity = _key5
 _RESPONSES5 = {
     "researcher": {
         "title": "The map has your name on it.",
-        "body": ("Pollination: <b>355 papers.</b> Nutrient cycling: <b>58 papers.</b> "
-                 "Soil formation: <b>343 papers.</b><br><br>"
-                 "These are not obscure niches — they are the foundations of global food security. "
-                 "They are also among the least-funded, least-published areas in the entire "
-                 "bio-inspired corpus. That gap exists not because the questions are unanswerable, "
-                 "but because the incentive structures haven't pointed there yet.<br><br>"
-                 "<em>Your next paper, your next grant proposal, your next collaboration across "
+        "body": ("Pollination: <b>355 papers.</b> Nutrient cycling: <b>58.</b> "
+                 "Soil formation: <b>343.</b> These are the foundations of global food security — "
+                 "and among the least-published areas in the entire bio-inspired corpus.<br><br>"
+                 "<em>Your next paper, your next grant, your next collaboration across "
                  "a disciplinary boundary — that is how the map changes.</em>"),
-        "links": [("Read the full paper", "https://doi.org/10.3390/biomimetics10110784"),
-                  ("Join the MEco seminar series", "https://www.manufacturedecosystems.com/seminar-series"),
-                  ("Explore the project", "https://www.manufacturedecosystems.com/projects")],
     },
     "designer": {
         "title": "Nature is the best brief you have never been given.",
-        "body": ("The 3% of bio-inspired research that chooses to <em>support</em> living systems "
-                 "rather than replace them — that work needed designers too. "
-                 "It needed someone to ask: what does a water system that becomes redundant "
-                 "once nature recovers actually look like?<br><br>"
-                 "The dominant paradigm — Replace — produces things that can be patented and sold. "
-                 "The Support paradigm produces things that work best when they disappear. "
+        "body": ("The dominant paradigm — Replace — produces things that can be patented and sold. "
+                 "The Support paradigm produces things that work best when they disappear.<br><br>"
                  "<em>That is a harder, more interesting design problem. "
                  "And it is almost entirely unoccupied.</em>"),
-        "links": [("See the virtual exhibition", "https://www.manufacturedecosystems.com/virtual-exhibition-2025"),
-                  ("Call for artists", "https://www.manufacturedecosystems.com/art-apply"),
-                  ("Learning from nature", "https://www.manufacturedecosystems.com/home/learning-from-nature")],
     },
     "policymaker": {
         "title": "You hold the dial.",
-        "body": ("The reason Critical Services — pollination, soil formation, nutrient cycling — "
-                 "have so few research papers is not that scientists don't care. "
-                 "It is that <b>funding flows toward what can be patented, commercialised, "
-                 "and sold.</b><br><br>"
+        "body": ("Critical services have so few papers not because scientists don't care — "
+                 "but because <b>funding flows toward what can be patented and sold.</b><br><br>"
                  "A single grant program focused on Support-oriented, openly-licensed "
                  "bio-inspired research could shift the entire distribution. "
-                 "<em>The lever is small. The effect is large. "
-                 "And the decision sits with people like you.</em>"),
-        "links": [("Read the research", "https://doi.org/10.3390/biomimetics10110784"),
-                  ("About the MEco project", "https://www.manufacturedecosystems.com/about-us"),
-                  ("Get in touch", "https://www.manufacturedecosystems.com/contact")],
+                 "<em>The lever is small. The effect is large.</em>"),
     },
     "artist": {
         "title": "Imagination shapes what science thinks is possible.",
-        "body": ("The Manufactured Ecosystems project was built on a belief that "
-                 "this research team holds with conviction: <em>the stories we tell about "
-                 "nature — in fiction, in art, in poetry, in film — shape the futures "
-                 "that scientists and engineers think are worth building.</em><br><br>"
-                 "Your image, your sentence, your character who misses a river that no longer runs — "
-                 "that is not separate from the data you have just seen. "
+        "body": ("Your image, your sentence, your character who misses a river "
+                 "that no longer runs — that is not separate from the data you have just seen. "
                  "<b>It is the data, felt from the inside.</b><br><br>"
-                 "The MEco Anthology is looking for writers. The Exhibition is looking for artists."),
-        "links": [("Virtual Exhibition 2025", "https://www.manufacturedecosystems.com/virtual-exhibition-2025"),
-                  ("Call for artists", "https://www.manufacturedecosystems.com/art-apply"),
-                  ("Learning from imagination", "https://www.manufacturedecosystems.com/home/learning-from-imagination")],
+                 "<em>The MEco Anthology is looking for writers. "
+                 "The Exhibition is looking for artists.</em>"),
     },
     "educator": {
         "title": "The silos were built in classrooms. They can be taken down there too.",
-        "body": ("The disciplinary isolation we showed you in Section 3 — "
+        "body": ("The disciplinary isolation in Section 3 — "
                  "engineers on one island, ecologists on the other — "
-                 "was not inevitable. It was constructed, over decades, "
-                 "through curricula that trained people to stay in their lanes.<br><br>"
-                 "A single course that asks an engineering student and an ecology student "
-                 "to design something together — with a shared vocabulary and no clean disciplinary exit — "
-                 "<em>that course is already changing the map.</em>"),
-        "links": [("Seminar series", "https://www.manufacturedecosystems.com/seminar-series"),
-                  ("About the team", "https://www.manufacturedecosystems.com/about-us"),
-                  ("MEco projects", "https://www.manufacturedecosystems.com/projects")],
+                 "was not inevitable. It was constructed through curricula "
+                 "that trained people to stay in their lanes.<br><br>"
+                 "<em>A single course that asks an engineering student and an ecology student "
+                 "to design something together — that course is already changing the map.</em>"),
     },
     "human": {
         "title": "You have already done the most important thing.",
-        "body": ("You came here. You read this. You thought about which ecosystem services "
-                 "you depend on before you had ever heard the phrase "
-                 "&ldquo;ecosystem service.&rdquo;<br><br>"
-                 "That attention — that willingness to sit with the complexity, "
-                 "the data, the gaps, the possibilities — "
+        "body": ("You came here. You thought about which ecosystem services "
+                 "you depend on before you had ever heard the phrase.<br><br>"
+                 "That willingness to sit with the complexity, the gaps, the possibilities — "
                  "<em>that is the rarest thing in the world right now.</em> "
                  "Not expertise. Not funding. Not technology. Attention.<br><br>"
-                 "Share this with one person who would find it uncomfortable. "
-                 "Ask one question in a meeting that nobody has thought to ask. "
-                 "Visit the exhibition. Read the fiction. Come back.<br><br>"
                  "<b>You belong in this conversation.</b> You always did."),
-        "links": [("Explore MEco", "https://www.manufacturedecosystems.com"),
-                  ("Virtual Exhibition", "https://www.manufacturedecosystems.com/virtual-exhibition-2025"),
-                  ("Learning from each other", "https://www.manufacturedecosystems.com/home/learning-from-each-other")],
     },
 }
 
 if st.session_state.identity and st.session_state.identity in _RESPONSES5:
     _resp5 = _RESPONSES5[st.session_state.identity]
-    _links5 = "".join(f'<a class="r-btn" href="{_url}" target="_blank">{_lbl}</a>'
-                      for _lbl, _url in _resp5["links"])
+    
     st.markdown(f"""
     <div class="response-card">
         <div class="response-title">{_resp5["title"]}</div>
         <div class="response-body">{_resp5["body"]}</div>
-        <div class="response-actions">{_links5}</div>
     </div>
     """, unsafe_allow_html=True)
 else:
@@ -2658,9 +2608,8 @@ else:
         Select a role above to receive a personalised message.
     </p>
     """, unsafe_allow_html=True)
-st.markdown('<div class="hr"></div>', unsafe_allow_html=True)
 
-st.markdown('<div class="chart-label">Where to go next</div>',
+st.markdown('<div class="chart-label" style="margin-top: 3rem;">Where to go next</div>',
             unsafe_allow_html=True)
 components.html("""
 <!DOCTYPE html><html><head>
