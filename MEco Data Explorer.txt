@@ -1,0 +1,157 @@
+# MEco Data Explorer
+
+## overview
+
+**MEco Data Explorer** is an interactive research database that transforms **31,559 GPT-4.1–annotated biomimetics papers** into a transparent, searchable, and exportable dataset. Rather than presenting a collection of static charts, it provides a complete toolkit for exploring the literature from multiple perspectives.
+
+---
+
+# Key Features
+
+## 1. Multi-dimensional Filtering (Sidebar)
+
+Instead of relying on a single search box, the Explorer organizes filters into five collapsible sections covering eight independent dimensions.
+
+### Ecological Focus
+
+- Replace / Enhance / Support design paradigms
+- 22 ecosystem services
+- 4 ecosystem service families
+- Cascading filtering (selecting a service family automatically narrows the available ecosystem services)
+
+### Time & Impact
+
+- Publication year slider
+- Minimum citation threshold
+
+### Publication Details
+
+- Source journals (long-tail journals are automatically grouped into **"Other Journals"**)
+- Open access status
+
+### Geography & Institutions
+
+- First-author country
+- Top 100 institutions with searchable dropdowns
+
+### Technology & Funding
+
+- 25 BERTopic-derived technology clusters
+- Approximately 60 globally recognized funding agencies matched using a curated whitelist
+
+Each filtering dimension explicitly documents its data coverage and methodological limitations. For example, the funding filter states that it covers approximately **60% of the corpus**, with **73.9% of funded papers successfully matched** to a standardized funding agency. Rather than implying complete coverage, the interface openly communicates the dataset's boundaries.
+
+---
+
+## 2. Quick Search (Precise and Transparent Full-text Search)
+
+The Quick Search function searches across four core fields:
+
+- Title
+- Authors
+- Keywords
+- Technology
+
+Search results immediately report where matches were found (e.g., **"Matched in: Title (4) · Keywords (5)"**), making the retrieval process fully transparent.
+
+To reduce irrelevant results, the Explorer intentionally uses **exact substring matching** instead of fuzzy search. This behavior is clearly documented in the help text so users understand how the search works.
+
+---
+
+## 3. URL State Synchronization (Shareable Views)
+
+All filter selections are automatically encoded into the browser's URL query parameters.
+
+Opening the same URL restores the identical filtering state, making it easy to share specific views with collaborators, reviewers, or students. Although simple, this is a feature that many dashboard applications do not support well.
+
+---
+
+## 4. Impact Tier Cards
+
+Four summary cards categorize the current selection into:
+
+- Top 1%
+- Top 10%
+- Core Literature
+- Long Tail
+
+A key design decision is that all citation thresholds are calculated **once from the full corpus of 31,559 papers** and remain fixed regardless of the current filters.
+
+This ensures that **Top 1%** always represents the highest-impact papers in the entire dataset rather than the top 1% within the current selection. Each card explicitly labels this as **"of full corpus"** to avoid ambiguity.
+
+---
+
+## 5. Linked Visualizations (Collapsed by Default)
+
+Three coordinated visualizations provide complementary perspectives on the filtered dataset.
+
+### Global Landscape
+
+- Interactive choropleth world map
+- Top 5 publishing countries
+
+Provides an overview of where bio-inspired research is concentrated globally.
+
+### Gap Analysis
+
+- Horizontal bar chart ranking all 22 ecosystem services by publication volume
+- A reference line highlights the predefined research-gap threshold
+
+
+### Technology Ecosystem
+
+- Treemap of 25 technology clusters
+- Rectangle size represents publication volume
+- Color intensity represents median citation impact
+
+This visualization answers two questions simultaneously:
+
+- What technologies are researchers developing?
+- Which technology areas receive the greatest scholarly impact?
+
+All three visualizations update automatically whenever the sidebar filters change.
+
+---
+
+## 6. Interactive Literature Table (AgGrid)
+
+The main table supports native AgGrid functionality, including:
+
+- Column sorting
+- Column filtering
+- Resizable columns
+
+Additional features include:
+
+- Custom DOI renderer linking directly to publisher pages
+- Color-coded Replace / Enhance / Support paradigms
+- Eleven optional columns (e.g., WoS ID, complete affiliations, raw addresses, funding information) that can be enabled on demand through a multiselect control
+
+The default view remains clean and uncluttered while still supporting more advanced data exploration.
+
+---
+
+## 7. Full Abstract Support (Lazy-loaded Architecture)
+
+Complete abstracts are stored separately and loaded only when needed, reducing the application's initial loading time.
+
+Abstracts are intentionally excluded from the main table to preserve readability but can be included as an optional export field. When selected, the exported CSV contains the complete abstract text.
+
+---
+
+## 8. Flexible Data Export (23 Selectable Fields)
+
+Users can export any combination of **23 available fields** as a CSV file.
+
+The default configuration includes a practical set of commonly used metadata, while researchers can customize the export to include additional fields ranging from WoS IDs to complete abstracts.
+
+---
+
+## 9. Transparent Methodology (we'll rephrase this part when putting into production)
+
+An expandable panel at the bottom of the page documents the complete data pipeline, including:
+
+- Data source (Web of Science search strategy and time span)
+- GPT classification methodology and decision logic
+- Known edge cases and data-cleaning procedures (including the removal of two LLM hallucinated labels)
+- Version management, with PostgreSQL recording model versions, prompt versions, and classification runs to ensure full reproducibility
