@@ -2037,8 +2037,7 @@ st.markdown("""
     Word frequency in the Replace-oriented subcorpus (left, amber)
     vs. the Support-oriented subcorpus (right, blue), per 1,000 abstracts.
     Terms are drawn from a full scan of 17,242 Replace and 980 Support
-    abstracts, filtered to those a general reader can parse without a
-    materials-science background.
+    abstracts.
 </p>
 """, unsafe_allow_html=True)
 
@@ -2607,7 +2606,7 @@ components.html("""
   </a>
   <a class="card" href="https://www.manufacturedecosystems.com/home/learning-from-nature" target="_blank">
     <div class="card-title">Learning from Nature</div>
-    <div class="card-desc">Go deeper into the four knowledge pillars — Nature, Technology, Imagination, and Each Other. A growing library of resources across disciplines.</div>
+    <div class="card-desc">Go deeper into the four knowledge pillars — Nature, Technology, Imagination, and Each Other. A library of resources across disciplines.</div>
     <div class="card-cta">Start exploring →</div>
   </a>
   <a class="card" href="/explorer" target="_blank">
