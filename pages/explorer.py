@@ -1,9 +1,9 @@
 """
 Data Explorer
 """
-
 import json
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas as pd
@@ -250,8 +250,10 @@ def _submit_feedback(wos_id, doi, title, current_category, current_service,
     if _ws is None:
         return False
     try:
+        # US Eastern time, with automatic EST/EDT handling via zoneinfo 
+        _ts = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d %H:%M:%S %Z")
         _ws.append_row([
-            datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            _ts,
             wos_id, doi or "", title or "",
             current_category or "", current_service or "",
             suggested_category, suggested_service or "",
@@ -274,8 +276,6 @@ _ALL_SERVICES = [
     "Aesthetic", "Recreation", "Cultural Heritage", "Spiritual",
     "Cultural Identity",
 ]
-
-
 
 # ════════════════════════════════════════════════════════════════
 # URL STATE SYNC 
