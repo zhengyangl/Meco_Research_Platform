@@ -1,8 +1,8 @@
-# MEco Data Explorer
+# MEco Data Explorer Feature List
 
 ## overview
 
-**MEco Data Explorer** is an interactive research database that transforms **31,559 GPT-4.1–annotated biomimetics papers** into a transparent, searchable, and exportable dataset. Rather than presenting a collection of static charts, it provides a complete toolkit for exploring the literature from multiple perspectives.
+MEco Data Explorer is an interactive research database that transforms 31,559 GPT-4.1–annotated biomimetics papers into a transparent, searchable, and exportable dataset. Rather than presenting a collection of static charts, it provides a complete toolkit for exploring the literature from multiple perspectives — and, as of this update, for helping improve the underlying classifications themselves.
 
 ---
 
@@ -120,22 +120,23 @@ The main table supports native AgGrid functionality, including:
 - Column sorting
 - Column filtering
 - Resizable columns
+- Native text selection and copy — cell contents can be highlighted and copied like any standard webpage, not just read
 
 Additional features include:
 
 - Custom DOI renderer linking directly to publisher pages
 - Color-coded Replace / Enhance / Support paradigms
-- Eleven optional columns (e.g., WoS ID, complete affiliations, raw addresses, funding information) that can be enabled on demand through a multiselect control
+- WoS ID is always visible (pinned as the last column) so it can be quickly copied into the misclassification report form below
+- Eleven optional columns enabled on demand through a multiselect control: Keywords, Open Access status, Service Family, All Affiliations, WoS Subject Categories, Raw Addresses, Funding (raw text), All Countries, All Institutions, matched Funding Agencies, and Classification Model (which LLM produced this row's classification — currently GPT-4.1 for the full corpus, with newer batches classified via Qwen-2.5-72B)
 
 The default view remains clean and uncluttered while still supporting more advanced data exploration.
-
 ---
 
 ## 7. Full Abstract Support (Lazy-loaded Architecture)
 
 Complete abstracts are stored separately and loaded only when needed, reducing the application's initial loading time.
 
-Abstracts are intentionally excluded from the main table to preserve readability but can be included as an optional export field. When selected, the exported CSV contains the complete abstract text.
+Abstracts are intentionally excluded from the main table to preserve readability and app responsiveness, but can be included as an optional export field. When selected, the exported CSV contains the complete abstract text for every matching paper.
 
 ---
 
@@ -147,11 +148,22 @@ The default configuration includes a practical set of commonly used metadata, wh
 
 ---
 
+## 9. Crowd-sourced Misclassification Reporting
+Any user who notices a paper that appears to be misclassified — a paradigm that doesn't fit, a mismatched ecosystem service — can flag it directly within the Explorer.
+
+How it works:
+
+- Users look up a specific paper by pasting its WoS ID or DOI into a dedicated lookup field. (This is deliberately not tied to clicking a table row — an earlier design that selected papers directly from the AgGrid table caused the entire page to re-render on every click, which was slow at this corpus size. A manual lookup keeps the interaction fast.)
+- Once a match is found, the paper's title and current classification (paradigm + ecosystem service) are displayed for confirmation before any report is filed
+- Users then submit a suggested paradigm, an optional suggested ecosystem service (drawn from the complete 22-service list, including the two services with zero papers so far), a required explanation, and an optional email for follow-up questions
+- Data integrity by design: submissions are logged to a dedicated Google Sheet for manual review — nothing is written to the production database automatically. Every report is queued for a human reviewer to evaluate before any classification is changed, keeping the platform's versioned, auditable classification history (see Methodology below) fully intact.
+
+
 ## 9. Transparent Methodology (we'll rephrase this part when putting into production)
 
 An expandable panel at the bottom of the page documents the complete data pipeline, including:
-
 - Data source (Web of Science search strategy and time span)
 - GPT classification methodology and decision logic
 - Known edge cases and data-cleaning procedures (including the removal of two LLM hallucinated labels)
-- Version management, with PostgreSQL recording model versions, prompt versions, and classification runs to ensure full reproducibility
+- Version management, with PostgreSQL recording model versions, prompt versions, and classification runs — the same versioning system that underlies both the "Classification Model" column and the review process for crowd-sourced reports, ensuring every classification change remains fully traceable
+(we'll rephrase this section further when moving into production)
