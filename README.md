@@ -27,26 +27,34 @@ for the full system design, database schema, and data lineage model.
 
 ```
 .
-├── app3.0.py                  # Narrative page (main Streamlit entry point)
+├── app.py                          # Narrative page
 ├── pages/
-│   ├── explorer.py            # Data Explorer (multi-page Streamlit app)
-│   ├── explorer_feature_list.txt
-│   └── explorer_older*.py     # Prior iterations, kept for reference
+│   └── explorer.py
 ├── pipelines/
-│   ├── ingest_initial.py      # Raw WoS/GPT export → PostgreSQL ingestion
-│   ├── text_analysis.py       # NLP feature extraction → paper_features table
-│   └── aggregate.py           # DB → dashboard_data/ (JSON + Parquet exports)
-├── dashboard_data/            # Pre-computed data consumed by the dashboard
+│   ├── ingest_initial.py           
+│   ├── ingest_incremental.py      
+│   ├── classify.py                
+│   ├── text_analysis.py
+│   ├── aggregate.py
+│   └── run_pipeline.py            
+├── dashboard_data/
 │   ├── abstracts.parquet
 │   ├── papers_classified.parquet
 │   ├── corpus_meta.json / services_summary.json / framing.json / ...
-│   └── discovery_data/        # WoS category/co-occurrence discovery outputs
-├── llm_validation/            # LLM classification validation scripts
-├── documents/
-│   └── architecture_overview.md  # Full platform architecture & DB design
-├── older_apps/                # Earlier full-app prototypes, kept for reference
-├── .streamlit/config.toml     # Streamlit UI config
-└── requirements.txt           # Dashboard-only dependencies (lightweight)
+│   └── discovery_data/
+├── llm_validation/                
+├── docs/
+│   ├── README.md
+│   ├── architecture.md
+│   ├── data_dictionary.md
+│   ├── data_schema_supplement.md
+│   ├── prompt_specification.md
+│   └── handover.md
+├── .streamlit/config.toml
+├── .env.example                   
+├── requirements.txt                # for dashboard
+├── requirements_pipeline.txt       # for pipeline
+└── .gitignore
 ```
 
 ## Running locally
